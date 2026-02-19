@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>寻根 · 归处</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1208;
+    --paper: #f5efe3;
+    --warm: #c8956c;
+    --gold: #b8860b;
+    --red: #8b2020;
+    --shadow: rgba(26,18,8,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Noto Sans SC', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      radial-gradient(ellipse at 20% 50%, rgba(200,149,108,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(139,32,32,0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to bottom, transparent, var(--red), var(--gold), var(--red), transparent);
+    opacity: 0.4;
+  }
+
+  header {
+    position: relative;
+    z-index: 1;
+    padding: 2rem 3rem 1.5rem;
+    border-bottom: 1px solid rgba(184,134,11,0.2);
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+  }
+
+  .logo {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--red);
+    letter-spacing: 0.1em;
+  }
+
+  .logo-sub {
+    font-size: 0.85rem;
+    color: var(--gold);
+    letter-spacing: 0.2em;
+    font-weight: 300;
+  }
+
+  .status-dot {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--warm);
+    opacity: 0.7;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #5a8a5a;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 780px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 2rem 2rem 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .welcome {
+    text-align: center;
+    padding: 4rem 2rem;
+    animation: fadeIn 1s ease;
+  }
+
+  .welcome-character {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 5rem;
+    color: var(--red);
+    opacity: 0.15;
+    line-height: 1;
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.3em;
+  }
+
+  .welcome h1 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 1.6rem;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 0.8rem;
+    letter-spacing: 0.05em;
+  }
+
+  .welcome p {
+    font-size: 0.9rem;
+    color: var(--warm);
+    line-height: 1.8;
+    max-width: 420px;
+    margin: 0 auto;
+    font-weight: 300;
+  }
+
+  .welcome-prompts {
+    margin-top: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    align-items: center;
+  }
+
+  .prompt-chip {
+    background: rgba(200,149,108,0.1);
+    border: 1px solid rgba(200,149,108,0.25);
+    border-radius: 2px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.82rem;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+    max-width: 380px;
+    text-align: center;
+  }
+
+  .prompt-chip:hover {
+    background: rgba(200,149,108,0.2);
+    border-color: var(--warm);
+    transform: translateX(4px);
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 1rem;
+    display: none;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .messages.visible { display: flex; }
+
+  .message {
+    display: flex;
+    gap: 1rem;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .avatar.agent { background: var(--red); color: var(--paper); }
+  .avatar.user { background: var(--ink); color: var(--paper); opacity: 0.7; }
+
+  .bubble {
+    max-width: 72%;
+    padding: 1rem 1.2rem;
+    line-height: 1.8;
+    font-size: 0.9rem;
+    font-weight: 300;
+  }
+
+  .message.agent .bubble {
+    background: white;
+    border: 1px solid rgba(184,134,11,0.15);
+    border-radius: 0 8px 8px 8px;
+    box-shadow: 0 2px 12px var(--shadow);
+    color: var(--ink);
+  }
+
+  .message.user .bubble {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 8px 0 8px 8px;
+    opacity: 0.85;
+  }
+
+  .typing {
+    display: none;
+    gap: 1rem;
+    align-items: flex-start;
+    animation: slideIn 0.3s ease;
+  }
+
+  .typing.visible { display: flex; }
+
+  .typing-dots {
+    background: white;
+    border: 1px solid rgba(184,134,11,0.15);
+    border-radius: 0 8px 8px 8px;
+    padding: 1rem 1.4rem;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+
+  .typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--warm);
+    animation: bounce 1.2s infinite;
+  }
+
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  .input-area {
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, var(--paper) 80%, transparent);
+    padding: 1.5rem 0 2rem;
+    z-index: 10;
+  }
+
+  .input-wrap {
+    display: flex;
+    border: 1px solid rgba(184,134,11,0.3);
+    border-radius: 3px;
+    background: white;
+    box-shadow: 0 4px 24px var(--shadow);
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .input-wrap:focus-within { border-color: var(--warm); }
+
+  textarea {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 1rem 1.2rem;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 300;
+    color: var(--ink);
+    background: transparent;
+    resize: none;
+    min-height: 52px;
+    max-height: 160px;
+    line-height: 1.6;
+  }
+
+  textarea::placeholder { color: rgba(26,18,8,0.3); }
+
+  .send-btn {
+    background: none;
+    border: none;
+    border-left: 1px solid rgba(184,134,11,0.2);
+    padding: 0 1.2rem;
+    cursor: pointer;
+    color: var(--warm);
+    transition: all 0.2s;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .send-btn:hover { background: rgba(200,149,108,0.1); color: var(--red); }
+  .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .hint {
+    text-align: center;
+    font-size: 0.72rem;
+    color: rgba(26,18,8,0.3);
+    margin-top: 0.6rem;
+    letter-spacing: 0.05em;
+  }
+
+  .error-msg {
+    background: rgba(139,32,32,0.06);
+    border: 1px solid rgba(139,32,32,0.2);
+    border-radius: 4px;
+    padding: 0.7rem 1rem;
+    font-size: 0.82rem;
+    color: var(--red);
+    text-align: center;
+    display: none;
+    margin-bottom: 0.5rem;
+  }
+
+  .error-msg.visible { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: rgba(200,149,108,0.3); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">寻根</div>
+  <div class="logo-sub">归处 · 海外华人寻根向导</div>
+  <div class="status-dot">
+    <span class="dot"></span>
+    向导在线
+  </div>
+</header>
+
+<div class="main">
+  <div class="welcome" id="welcome">
+    <div class="welcome-character">根</div>
+    <h1>树有根，人不能忘本</h1>
+    <p>告诉我你所知道的一切——哪怕只是一个模糊的地名，或是老人留下的只言片语。我们一起寻找回家的路。</p>
+    <div class="welcome-prompts">
+      <div class="prompt-chip" onclick="usePrompt(this)">我是马来西亚华人，只知道祖籍是福建，想找到更具体的地方</div>
+      <div class="prompt-chip" onclick="usePrompt(this)">爷爷说我们是广东人，家里说客家话，想帮他完成回乡的心愿</div>
+      <div class="prompt-chip" onclick="usePrompt(this)">我有一张老照片和一个祖先的名字，不知道从哪里开始寻根</div>
+    </div>
+  </div>
+
+  <div class="messages" id="messages"></div>
+
+  <div class="typing" id="typing">
+    <div class="avatar agent">向</div>
+    <div class="typing-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="error-msg" id="error"></div>
+    <div class="input-wrap">
+      <textarea 
+        id="input" 
+        placeholder="告诉我你知道的关于家族的任何信息……" 
+        rows="1"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
+    </div>
+    <div class="hint">按 Enter 发送 · Shift+Enter 换行</div>
+  </div>
+</div>
+
+<script>
+  // 调用自己的Vercel后端，不直接暴露token
+  const API_URL = '/api/chat';
+
+  let sessionId = 'sess_' + Math.random().toString(36).substr(2, 16);
+  let isLoading = false;
+  let conversationStarted = false;
+
+  function usePrompt(el) {
+    document.getElementById('input').value = el.textContent;
+    sendMessage();
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error');
+    el.textContent = msg;
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), 5000);
+  }
+
+  function addMessage(role, text) {
+    if (!conversationStarted) {
+      document.getElementById('welcome').style.display = 'none';
+      document.getElementById('messages').classList.add('visible');
+      conversationStarted = true;
+    }
+
+    const messages = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    div.innerHTML = `
+      <div class="avatar ${role}">${role === 'agent' ? '向' : '我'}</div>
+      <div class="bubble">${text.replace(/\n/g, '<br>')}</div>
+    `;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  function setTyping(visible) {
+    document.getElementById('typing').classList.toggle('visible', visible);
+    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('input');
+    const text = input.value.trim();
+    if (!text || isLoading) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    isLoading = true;
+    document.getElementById('sendBtn').disabled = true;
+
+    addMessage('user', text);
+    setTyping(true);
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, session_id: sessionId })
+      });
+
+      if (!response.ok) {
+        throw new Error(`请求失败 (${response.status})`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+      let agentDiv = null;
+
+      setTyping(false);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            try {
+              const data = JSON.parse(line.slice(5).trim());
+              let newText = data.content || data.delta?.content || data.message?.content || '';
+              if (newText) {
+                fullText += newText;
+                if (!agentDiv) {
+                  agentDiv = addMessage('agent', fullText);
+                } else {
+                  agentDiv.querySelector('.bubble').innerHTML = fullText.replace(/\n/g, '<br>');
+                  document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+                }
+              }
+            } catch (e) { /* skip non-JSON */ }
+          }
+        }
+      }
+
+      if (!fullText) {
+        addMessage('agent', '我收到了你的信息，正在整理思路……请稍等片刻。');
+      }
+
+    } catch (err) {
+      setTyping(false);
+      showError('连接出现问题，请稍后重试：' + err.message);
+    } finally {
+      isLoading = false;
+      document.getElementById('sendBtn').disabled = false;
+      input.focus();
+    }
+  }
+</script>
+</body>
+</html>
