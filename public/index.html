@@ -503,12 +503,7 @@
         if (line.startsWith('data:')) {
           try {
             const data = JSON.parse(line.slice(5).trim());
-            let newText = '';
-            if (typeof data.content === 'string') newText = data.content;
-            else if (typeof data.delta?.content === 'string') newText = data.delta.content;
-            else if (typeof data.message?.content === 'string') newText = data.message.content;
-            else if (data.choices?.[0]?.delta?.content) newText = data.choices[0].delta.content;
-            else if (data.output) newText = typeof data.output === 'string' ? data.output : JSON.stringify(data.output);
+            let newText = (data.type === 'answer' && data.content?.answer) ? data.content.answer : '';
               if (newText) {
                 fullText += newText;
                 if (!agentDiv) {
