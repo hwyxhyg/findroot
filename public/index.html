@@ -6,449 +6,135 @@
 <title>寻根 · 归处</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --ink: #1a1208;
-    --paper: #f5efe3;
-    --warm: #c8956c;
-    --gold: #b8860b;
-    --red: #8b2020;
-    --shadow: rgba(26,18,8,0.12);
-  }
+  :root{--ink:#1a1208;--paper:#f5efe3;--warm:#c8956c;--gold:#b8860b;--red:#8b2020;--shadow:rgba(26,18,8,0.12);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--paper);color:var(--ink);font-family:'Noto Sans SC',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(ellipse at 20% 50%,rgba(200,149,108,.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(139,32,32,.05) 0%,transparent 50%);pointer-events:none;z-index:0;}
+  body::after{content:'';position:fixed;left:0;top:0;bottom:0;width:4px;background:linear-gradient(to bottom,transparent,var(--red),var(--gold),var(--red),transparent);opacity:.4;z-index:100;}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  header{flex-shrink:0;position:relative;z-index:50;padding:1rem 2rem;border-bottom:1px solid rgba(184,134,11,.2);display:flex;align-items:center;gap:1.5rem;background:rgba(245,239,227,.97);backdrop-filter:blur(8px);}
+  .logo{font-family:'Noto Serif SC',serif;font-size:1.5rem;font-weight:600;color:var(--red);letter-spacing:.1em;}
+  .logo-sub{font-size:.78rem;color:var(--gold);letter-spacing:.2em;font-weight:300;}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:1rem;}
+  .panel-toggle{background:rgba(200,149,108,.1);border:1px solid rgba(200,149,108,.3);border-radius:4px;padding:.4rem .9rem;font-size:.78rem;color:var(--ink);cursor:pointer;font-family:'Noto Sans SC',sans-serif;transition:all .2s;display:flex;align-items:center;gap:.5rem;white-space:nowrap;}
+  .panel-toggle:hover{background:rgba(200,149,108,.2);}
+  .badge{background:var(--red);color:white;border-radius:10px;padding:1px 6px;font-size:.65rem;display:none;line-height:1.4;}
+  .badge.visible{display:inline;}
+  .status-dot{display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--warm);}
+  .dot{width:6px;height:6px;border-radius:50%;background:#5a8a5a;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 
-  body {
-    background: var(--paper);
-    color: var(--ink);
-    font-family: 'Noto Sans SC', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow-x: hidden;
-  }
+  .app-body{flex:1;display:flex;overflow:hidden;position:relative;z-index:1;}
+  .chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 2rem;max-width:800px;margin:0 auto;width:100%;}
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: 
-      radial-gradient(ellipse at 20% 50%, rgba(200,149,108,0.08) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 20%, rgba(139,32,32,0.05) 0%, transparent 50%);
-    pointer-events: none;
-    z-index: 0;
-  }
+  /* SIDE PANEL */
+  .side-panel{width:0;overflow:hidden;transition:width .3s ease;border-left:1px solid rgba(184,134,11,.15);background:rgba(255,255,255,.7);backdrop-filter:blur(4px);flex-shrink:0;display:flex;flex-direction:column;}
+  .side-panel.open{width:300px;}
+  .side-panel-inner{width:300px;overflow-y:auto;padding:1.2rem;display:flex;flex-direction:column;gap:1rem;flex:1;}
+  .panel-section{background:white;border:1px solid rgba(184,134,11,.15);border-radius:6px;overflow:hidden;}
+  .panel-section-header{padding:.6rem .9rem;background:rgba(200,149,108,.08);border-bottom:1px solid rgba(184,134,11,.1);font-family:'Noto Serif SC',serif;font-size:.8rem;color:var(--red);font-weight:600;letter-spacing:.05em;}
+  .panel-section-body{padding:.8rem .9rem;font-size:.78rem;line-height:1.7;}
+  .info-row{display:flex;gap:.5rem;margin-bottom:.35rem;align-items:flex-start;}
+  .info-label{color:var(--gold);min-width:60px;flex-shrink:0;font-size:.72rem;margin-top:1px;}
+  .todo-list{display:flex;flex-direction:column;gap:.4rem;}
+  .todo-item{display:flex;align-items:flex-start;gap:.5rem;padding:.45rem .6rem;border-radius:4px;border:1px solid rgba(184,134,11,.12);cursor:pointer;transition:all .15s;font-size:.75rem;line-height:1.5;}
+  .todo-item:hover{background:rgba(200,149,108,.06);}
+  .todo-item.done{opacity:.45;}
+  .todo-item.done .todo-text{text-decoration:line-through;}
+  .todo-check{width:14px;height:14px;border:1.5px solid rgba(184,134,11,.4);border-radius:3px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:9px;color:white;transition:all .15s;}
+  .todo-item.done .todo-check{background:var(--gold);border-color:var(--gold);}
+  .empty-panel{text-align:center;padding:1.5rem .5rem;color:rgba(26,18,8,.3);font-size:.75rem;line-height:1.8;}
 
-  body::after {
-    content: '';
-    position: fixed;
-    left: 0; top: 0; bottom: 0;
-    width: 4px;
-    background: linear-gradient(to bottom, transparent, var(--red), var(--gold), var(--red), transparent);
-    opacity: 0.4;
-  }
+  /* WELCOME */
+  .welcome{text-align:center;padding:3rem 2rem;animation:fadeIn .8s ease;flex-shrink:0;}
+  .welcome-character{font-family:'Noto Serif SC',serif;font-size:4rem;color:var(--red);opacity:.12;line-height:1;margin-bottom:1.2rem;}
+  .welcome h1{font-family:'Noto Serif SC',serif;font-size:1.4rem;font-weight:400;margin-bottom:.6rem;}
+  .welcome p{font-size:.85rem;color:var(--warm);line-height:1.8;max-width:380px;margin:0 auto;font-weight:300;}
+  .welcome-prompts{margin-top:1.8rem;display:flex;flex-direction:column;gap:.5rem;align-items:center;}
+  .prompt-chip{background:rgba(200,149,108,.1);border:1px solid rgba(200,149,108,.25);border-radius:2px;padding:.5rem 1rem;font-size:.78rem;color:var(--ink);cursor:pointer;transition:all .2s;max-width:360px;text-align:center;}
+  .prompt-chip:hover{background:rgba(200,149,108,.18);transform:translateX(3px);}
 
-  header {
-    position: relative;
-    z-index: 10;
-    padding: 1.2rem 2rem;
-    border-bottom: 1px solid rgba(184,134,11,0.2);
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    background: rgba(245,239,227,0.95);
-    backdrop-filter: blur(8px);
-  }
+  /* MESSAGES */
+  .messages{flex:1;overflow-y:auto;padding:1.2rem 0;display:none;flex-direction:column;gap:1rem;}
+  .messages.visible{display:flex;}
+  .message{display:flex;gap:.8rem;animation:slideIn .25s ease;}
+  @keyframes slideIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .message.user{flex-direction:row-reverse;}
+  .avatar{width:30px;height:30px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif SC',serif;font-size:.75rem;flex-shrink:0;margin-top:2px;}
+  .avatar.agent{background:var(--red);color:var(--paper);}
+  .avatar.user{background:var(--ink);color:var(--paper);opacity:.7;}
+  .bubble{max-width:78%;padding:.85rem 1rem;line-height:1.8;font-size:.86rem;font-weight:300;}
+  .message.agent .bubble{background:white;border:1px solid rgba(184,134,11,.15);border-radius:0 8px 8px 8px;box-shadow:0 2px 10px var(--shadow);}
+  .message.user .bubble{background:var(--ink);color:var(--paper);border-radius:8px 0 8px 8px;opacity:.85;}
 
-  .logo { font-family: 'Noto Serif SC', serif; font-size: 1.6rem; font-weight: 600; color: var(--red); letter-spacing: 0.1em; }
-  .logo-sub { font-size: 0.8rem; color: var(--gold); letter-spacing: 0.2em; font-weight: 300; }
+  /* STRUCTURED AGENT RESPONSE */
+  .agent-response{display:flex;flex-direction:column;gap:.6rem;}
+  .agent-message-text{line-height:1.8;font-size:.86rem;}
 
-  .header-right { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
+  .collapse-block{border:1px solid rgba(184,134,11,.15);border-radius:6px;overflow:hidden;}
+  .collapse-header{padding:.55rem .8rem;background:rgba(200,149,108,.07);cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:.82rem;font-weight:400;color:var(--ink);user-select:none;transition:background .15s;}
+  .collapse-header:hover{background:rgba(200,149,108,.12);}
+  .collapse-title{display:flex;align-items:center;gap:.4rem;}
+  .collapse-arrow{font-size:.65rem;color:var(--warm);transition:transform .2s;margin-left:.5rem;}
+  .collapse-header.open .collapse-arrow{transform:rotate(180deg);}
+  .collapse-body{padding:.7rem .9rem;font-size:.82rem;line-height:1.8;display:none;border-top:1px solid rgba(184,134,11,.1);}
+  .collapse-body.open{display:block;}
 
-  .panel-toggle {
-    background: rgba(200,149,108,0.1);
-    border: 1px solid rgba(200,149,108,0.3);
-    border-radius: 4px;
-    padding: 0.4rem 0.9rem;
-    font-size: 0.78rem;
-    color: var(--ink);
-    cursor: pointer;
-    font-family: 'Noto Sans SC', sans-serif;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .panel-toggle:hover { background: rgba(200,149,108,0.2); }
-  .panel-toggle .badge {
-    background: var(--red);
-    color: white;
-    border-radius: 10px;
-    padding: 0 5px;
-    font-size: 0.65rem;
-    display: none;
-  }
-  .panel-toggle .badge.visible { display: inline; }
+  /* Info grid inside collapse */
+  .info-grid{display:flex;flex-direction:column;gap:.3rem;}
+  .info-grid-row{display:flex;gap:.5rem;}
+  .info-grid-label{color:var(--gold);min-width:55px;font-size:.75rem;flex-shrink:0;}
+  .info-grid-value{color:var(--ink);font-size:.8rem;}
 
-  .status-dot { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--warm); }
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: #5a8a5a; animation: pulse 2s infinite; }
-  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  /* Guide cards */
+  .guide-card{border:1px solid rgba(184,134,11,.12);border-radius:5px;padding:.6rem .8rem;margin-bottom:.5rem;}
+  .guide-card:last-child{margin-bottom:0;}
+  .guide-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem;}
+  .guide-name{font-weight:600;font-size:.84rem;color:var(--ink);}
+  .guide-score{background:var(--red);color:white;border-radius:10px;padding:1px 7px;font-size:.7rem;}
+  .guide-location{font-size:.75rem;color:var(--warm);margin-bottom:.3rem;}
+  .guide-reason{font-size:.75rem;color:rgba(26,18,8,.6);margin-bottom:.3rem;}
+  .guide-contact{font-size:.72rem;color:var(--gold);}
+  .guide-cases{margin-top:.3rem;padding-top:.3rem;border-top:1px solid rgba(184,134,11,.1);font-size:.72rem;color:rgba(26,18,8,.5);}
 
-  /* Layout */
-  .app-body {
-    flex: 1;
-    display: flex;
-    position: relative;
-    overflow: hidden;
-  }
+  /* Analysis text */
+  .analysis-text{font-size:.82rem;line-height:1.8;color:var(--ink);}
 
-  /* Chat area */
-  .chat-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    max-width: 780px;
-    margin: 0 auto;
-    width: 100%;
-    padding: 1.5rem 2rem 0;
-    position: relative;
-    z-index: 1;
-    transition: max-width 0.3s ease;
-  }
+  /* TYPING */
+  .typing{display:none;gap:.8rem;align-items:flex-start;padding:.5rem 0;}
+  .typing.visible{display:flex;}
+  .typing-dots{background:white;border:1px solid rgba(184,134,11,.15);border-radius:0 8px 8px 8px;padding:.8rem 1.1rem;display:flex;gap:4px;align-items:center;box-shadow:0 2px 10px var(--shadow);}
+  .typing-dots span{width:5px;height:5px;border-radius:50%;background:var(--warm);animation:bounce 1.2s infinite;}
+  .typing-dots span:nth-child(2){animation-delay:.2s;}
+  .typing-dots span:nth-child(3){animation-delay:.4s;}
+  @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-5px);opacity:1;}}
 
-  /* Side panel */
-  .side-panel {
-    width: 0;
-    overflow: hidden;
-    transition: width 0.3s ease;
-    border-left: 1px solid rgba(184,134,11,0.15);
-    background: rgba(255,255,255,0.6);
-    backdrop-filter: blur(4px);
-    position: relative;
-    z-index: 5;
-    flex-shrink: 0;
-  }
-
-  .side-panel.open {
-    width: 320px;
-  }
-
-  .side-panel-inner {
-    width: 320px;
-    height: 100%;
-    overflow-y: auto;
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-  }
-
-  .panel-section {
-    background: white;
-    border: 1px solid rgba(184,134,11,0.15);
-    border-radius: 6px;
-    overflow: hidden;
-  }
-
-  .panel-section-header {
-    padding: 0.7rem 1rem;
-    background: rgba(200,149,108,0.08);
-    border-bottom: 1px solid rgba(184,134,11,0.1);
-    font-family: 'Noto Serif SC', serif;
-    font-size: 0.82rem;
-    color: var(--red);
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .panel-section-body {
-    padding: 0.8rem 1rem;
-    font-size: 0.8rem;
-    line-height: 1.7;
-    color: var(--ink);
-  }
-
-  .info-row {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 0.4rem;
-    align-items: flex-start;
-  }
-
-  .info-label {
-    color: var(--gold);
-    font-weight: 400;
-    min-width: 70px;
-    flex-shrink: 0;
-    font-size: 0.75rem;
-    margin-top: 1px;
-  }
-
-  .info-value { color: var(--ink); }
-  .info-empty { color: rgba(26,18,8,0.3); font-style: italic; }
-
-  /* Todo list */
-  .todo-list { display: flex; flex-direction: column; gap: 0.5rem; }
-
-  .todo-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.6rem;
-    padding: 0.5rem 0.7rem;
-    border-radius: 4px;
-    border: 1px solid rgba(184,134,11,0.15);
-    cursor: pointer;
-    transition: all 0.15s;
-    font-size: 0.78rem;
-    line-height: 1.5;
-  }
-
-  .todo-item:hover { background: rgba(200,149,108,0.06); }
-  .todo-item.done { opacity: 0.5; }
-  .todo-item.done .todo-text { text-decoration: line-through; }
-
-  .todo-check {
-    width: 16px;
-    height: 16px;
-    border: 1.5px solid rgba(184,134,11,0.4);
-    border-radius: 3px;
-    flex-shrink: 0;
-    margin-top: 1px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-    font-size: 10px;
-    color: white;
-  }
-
-  .todo-item.done .todo-check {
-    background: var(--gold);
-    border-color: var(--gold);
-  }
-
-  .empty-panel {
-    text-align: center;
-    padding: 2rem 1rem;
-    color: rgba(26,18,8,0.3);
-    font-size: 0.8rem;
-    line-height: 1.8;
-  }
-
-  /* Welcome */
-  .welcome {
-    text-align: center;
-    padding: 3rem 2rem;
-    animation: fadeIn 1s ease;
-  }
-
-  .welcome-character {
-    font-family: 'Noto Serif SC', serif;
-    font-size: 5rem;
-    color: var(--red);
-    opacity: 0.15;
-    line-height: 1;
-    margin-bottom: 1.5rem;
-    letter-spacing: 0.3em;
-  }
-
-  .welcome h1 { font-family: 'Noto Serif SC', serif; font-size: 1.5rem; font-weight: 400; margin-bottom: 0.8rem; }
-  .welcome p { font-size: 0.88rem; color: var(--warm); line-height: 1.8; max-width: 400px; margin: 0 auto; font-weight: 300; }
-
-  .welcome-prompts { margin-top: 2rem; display: flex; flex-direction: column; gap: 0.5rem; align-items: center; }
-
-  .prompt-chip {
-    background: rgba(200,149,108,0.1);
-    border: 1px solid rgba(200,149,108,0.25);
-    border-radius: 2px;
-    padding: 0.55rem 1.1rem;
-    font-size: 0.8rem;
-    color: var(--ink);
-    cursor: pointer;
-    transition: all 0.2s;
-    max-width: 380px;
-    text-align: center;
-  }
-  .prompt-chip:hover { background: rgba(200,149,108,0.2); transform: translateX(4px); }
-
-  /* Messages */
-  .messages {
-    flex: 1;
-    overflow-y: auto;
-    padding-bottom: 1rem;
-    display: none;
-    flex-direction: column;
-    gap: 1.2rem;
-  }
-  .messages.visible { display: flex; }
-
-  .message { display: flex; gap: 0.8rem; animation: slideIn 0.3s ease; }
-  @keyframes slideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-  .message.user { flex-direction: row-reverse; }
-
-  .avatar {
-    width: 32px; height: 32px;
-    border-radius: 2px;
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Noto Serif SC', serif;
-    font-size: 0.8rem;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-  .avatar.agent { background: var(--red); color: var(--paper); }
-  .avatar.user { background: var(--ink); color: var(--paper); opacity: 0.7; }
-
-  .bubble {
-    max-width: 75%;
-    padding: 0.9rem 1.1rem;
-    line-height: 1.8;
-    font-size: 0.88rem;
-    font-weight: 300;
-  }
-
-  .message.agent .bubble {
-    background: white;
-    border: 1px solid rgba(184,134,11,0.15);
-    border-radius: 0 8px 8px 8px;
-    box-shadow: 0 2px 12px var(--shadow);
-  }
-
-  .message.user .bubble {
-    background: var(--ink);
-    color: var(--paper);
-    border-radius: 8px 0 8px 8px;
-    opacity: 0.85;
-  }
-
-  .bubble h3 { font-family: 'Noto Serif SC', serif; color: var(--red); margin: 0.8em 0 0.3em; font-size: 0.95rem; }
-  .bubble h4 { font-family: 'Noto Serif SC', serif; color: var(--red); margin: 0.6em 0 0.2em; font-size: 0.88rem; }
-  .bubble strong { font-weight: 600; color: var(--ink); }
-  .bubble hr { border: none; border-top: 1px solid rgba(184,134,11,0.15); margin: 0.8em 0; }
-
-  /* Typing indicator - FIXED */
-  .typing {
-    display: none;
-    gap: 0.8rem;
-    align-items: flex-start;
-  }
-  .typing.visible { display: flex; }
-
-  .typing-dots {
-    background: white;
-    border: 1px solid rgba(184,134,11,0.15);
-    border-radius: 0 8px 8px 8px;
-    padding: 0.9rem 1.2rem;
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    box-shadow: 0 2px 12px var(--shadow);
-  }
-
-  .typing-dots span {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--warm);
-    animation: bounce 1.2s infinite;
-  }
-  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-  @keyframes bounce {
-    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-    30% { transform: translateY(-5px); opacity: 1; }
-  }
-
-  /* Input */
-  .input-area {
-    position: sticky;
-    bottom: 0;
-    background: linear-gradient(to top, var(--paper) 80%, transparent);
-    padding: 1rem 0 1.5rem;
-    z-index: 10;
-  }
-
-  .input-wrap {
-    display: flex;
-    border: 1px solid rgba(184,134,11,0.3);
-    border-radius: 3px;
-    background: white;
-    box-shadow: 0 4px 20px var(--shadow);
-    overflow: hidden;
-    transition: border-color 0.2s;
-  }
-  .input-wrap:focus-within { border-color: var(--warm); }
-
-  textarea {
-    flex: 1;
-    border: none; outline: none;
-    padding: 0.9rem 1.1rem;
-    font-family: 'Noto Sans SC', sans-serif;
-    font-size: 0.88rem;
-    font-weight: 300;
-    color: var(--ink);
-    background: transparent;
-    resize: none;
-    min-height: 48px;
-    max-height: 140px;
-    line-height: 1.6;
-  }
-  textarea::placeholder { color: rgba(26,18,8,0.3); }
-
-  .send-btn {
-    background: none; border: none;
-    border-left: 1px solid rgba(184,134,11,0.2);
-    padding: 0 1.1rem;
-    cursor: pointer;
-    color: var(--warm);
-    transition: all 0.2s;
-    font-size: 1rem;
-    display: flex; align-items: center;
-  }
-  .send-btn:hover { background: rgba(200,149,108,0.1); color: var(--red); }
-  .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-  .hint { text-align: center; font-size: 0.7rem; color: rgba(26,18,8,0.25); margin-top: 0.5rem; }
-
-  .error-msg {
-    background: rgba(139,32,32,0.06);
-    border: 1px solid rgba(139,32,32,0.2);
-    border-radius: 4px;
-    padding: 0.6rem 1rem;
-    font-size: 0.8rem;
-    color: var(--red);
-    text-align: center;
-    display: none;
-    margin-bottom: 0.5rem;
-  }
-  .error-msg.visible { display: block; }
-
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-
-  .messages::-webkit-scrollbar { width: 3px; }
-  .messages::-webkit-scrollbar-track { background: transparent; }
-  .messages::-webkit-scrollbar-thumb { background: rgba(200,149,108,0.3); border-radius: 2px; }
-  .side-panel-inner::-webkit-scrollbar { width: 3px; }
-  .side-panel-inner::-webkit-scrollbar-track { background: transparent; }
-  .side-panel-inner::-webkit-scrollbar-thumb { background: rgba(200,149,108,0.2); border-radius: 2px; }
+  /* INPUT */
+  .input-area{flex-shrink:0;padding:.8rem 0 1.2rem;background:linear-gradient(to top,var(--paper) 85%,transparent);}
+  .input-wrap{display:flex;border:1px solid rgba(184,134,11,.3);border-radius:3px;background:white;box-shadow:0 3px 16px var(--shadow);overflow:hidden;transition:border-color .2s;}
+  .input-wrap:focus-within{border-color:var(--warm);}
+  textarea{flex:1;border:none;outline:none;padding:.85rem 1rem;font-family:'Noto Sans SC',sans-serif;font-size:.86rem;font-weight:300;color:var(--ink);background:transparent;resize:none;min-height:46px;max-height:130px;line-height:1.6;}
+  textarea::placeholder{color:rgba(26,18,8,.3);}
+  .send-btn{background:none;border:none;border-left:1px solid rgba(184,134,11,.2);padding:0 1rem;cursor:pointer;color:var(--warm);transition:all .2s;font-size:1rem;display:flex;align-items:center;}
+  .send-btn:hover{background:rgba(200,149,108,.1);color:var(--red);}
+  .send-btn:disabled{opacity:.3;cursor:not-allowed;}
+  .hint{text-align:center;font-size:.68rem;color:rgba(26,18,8,.25);margin-top:.4rem;}
+  .error-msg{background:rgba(139,32,32,.06);border:1px solid rgba(139,32,32,.2);border-radius:4px;padding:.5rem .9rem;font-size:.78rem;color:var(--red);text-align:center;display:none;margin-bottom:.4rem;}
+  .error-msg.visible{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .messages::-webkit-scrollbar,.side-panel-inner::-webkit-scrollbar{width:3px;}
+  .messages::-webkit-scrollbar-thumb,.side-panel-inner::-webkit-scrollbar-thumb{background:rgba(200,149,108,.25);border-radius:2px;}
 </style>
 </head>
 <body>
-
 <header>
   <div class="logo">寻根</div>
   <div class="logo-sub">归处 · 海外华人寻根向导</div>
   <div class="header-right">
     <button class="panel-toggle" onclick="togglePanel()" id="panelBtn">
-      📋 寻根档案
-      <span class="badge" id="todoBadge">0</span>
+      📋 寻根档案 <span class="badge" id="todoBadge"></span>
     </button>
-    <div class="status-dot">
-      <span class="dot"></span>
-      向导在线
-    </div>
+    <div class="status-dot"><span class="dot"></span>向导在线</div>
   </div>
 </header>
 
@@ -464,16 +150,11 @@
         <div class="prompt-chip" onclick="usePrompt(this)">我有一张老照片和一个祖先的名字，不知道从哪里开始寻根</div>
       </div>
     </div>
-
     <div class="messages" id="messages"></div>
-
     <div class="typing" id="typing">
       <div class="avatar agent">向</div>
-      <div class="typing-dots">
-        <span></span><span></span><span></span>
-      </div>
+      <div class="typing-dots"><span></span><span></span><span></span></div>
     </div>
-
     <div class="input-area">
       <div class="error-msg" id="error"></div>
       <div class="input-wrap">
@@ -481,253 +162,261 @@
           onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
         <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
       </div>
-      <div class="hint">按 Enter 发送 · Shift+Enter 换行</div>
+      <div class="hint">Enter 发送 · Shift+Enter 换行</div>
     </div>
   </div>
 
-  <!-- Side Panel -->
   <div class="side-panel" id="sidePanel">
     <div class="side-panel-inner">
-
       <div class="panel-section">
-        <div class="panel-section-header">📋 已收集的信息</div>
+        <div class="panel-section-header">📋 已收集的家族信息</div>
         <div class="panel-section-body" id="infoPanel">
-          <div class="empty-panel">开始对话后，<br>我会在这里整理你的家族信息</div>
+          <div class="empty-panel">开始对话后，<br>信息会自动整理在这里</div>
         </div>
       </div>
-
       <div class="panel-section">
         <div class="panel-section-header">✅ 下一步行动</div>
         <div class="panel-section-body" id="todoPanel">
-          <div class="empty-panel">根据寻根进展，<br>我会为你生成行动清单</div>
+          <div class="empty-panel">Agent会为你<br>生成可勾选的行动清单</div>
         </div>
       </div>
-
     </div>
   </div>
 </div>
 
 <script>
   const API_URL = '/api/chat';
-  let sessionId = 'sess_' + Math.random().toString(36).substr(2, 16);
-  let isLoading = false;
-  let conversationStarted = false;
-  let panelOpen = false;
-  let todos = [];
-  let familyInfo = {};
+  let sessionId = 'sess_' + Math.random().toString(36).substr(2,16);
+  let isLoading = false, conversationStarted = false, panelOpen = false;
+  let todos = [], familyInfo = {};
 
   function togglePanel() {
     panelOpen = !panelOpen;
     document.getElementById('sidePanel').classList.toggle('open', panelOpen);
-    document.getElementById('panelBtn').textContent = panelOpen ? '✕ 关闭档案' : '📋 寻根档案';
-    if (panelOpen) {
-      const badge = document.getElementById('todoBadge');
-      badge.classList.remove('visible');
+    document.getElementById('panelBtn').innerHTML = panelOpen
+      ? '✕ 关闭档案'
+      : '📋 寻根档案 <span class="badge" id="todoBadge"></span>';
+    updateBadge();
+  }
+
+  function updateBadge() {
+    const badge = document.getElementById('todoBadge');
+    if (!badge) return;
+    const undone = todos.filter(t => !t.done).length;
+    badge.textContent = undone;
+    badge.classList.toggle('visible', !panelOpen && undone > 0);
+  }
+
+  function usePrompt(el) { document.getElementById('input').value = el.textContent; sendMessage(); }
+  function handleKey(e) { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+  function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,130)+'px'; }
+  function showError(msg) {
+    const el = document.getElementById('error');
+    el.textContent=msg; el.classList.add('visible');
+    setTimeout(()=>el.classList.remove('visible'),5000);
+  }
+
+  function toggleCollapse(header) {
+    header.classList.toggle('open');
+    header.nextElementSibling.classList.toggle('open');
+  }
+
+  // Try to parse JSON from agent text
+  function tryParseJSON(text) {
+    try {
+      // Find JSON object in the text
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start === -1 || end === -1) return null;
+      return JSON.parse(text.slice(start, end+1));
+    } catch(e) {
+      return null;
     }
   }
 
-  function usePrompt(el) {
-    document.getElementById('input').value = el.textContent;
-    sendMessage();
+  // Render structured JSON response
+  function renderStructuredResponse(data) {
+    const parts = [];
+
+    // Conversation message
+    if (data.message) {
+      parts.push(`<div class="agent-message-text">${data.message.replace(/\n/g,'<br>')}</div>`);
+    }
+
+    // User info summary - collapsible, default closed
+    if (data.user_info) {
+      const info = data.user_info;
+      const rows = [
+        ['姓氏', info.surname],
+        ['祖籍', info.location],
+        ['方言', info.dialect],
+        ['迁移', info.migration_info],
+      ].filter(([,v]) => v && v !== '未提供' && v !== '未知');
+
+      if (rows.length) {
+        parts.push(`
+          <div class="collapse-block">
+            <div class="collapse-header" onclick="toggleCollapse(this)">
+              <span class="collapse-title">📋 已收集信息</span>
+              <span class="collapse-arrow">▼</span>
+            </div>
+            <div class="collapse-body">
+              <div class="info-grid">
+                ${rows.map(([l,v])=>`<div class="info-grid-row"><span class="info-grid-label">${l}</span><span class="info-grid-value">${v}</span></div>`).join('')}
+              </div>
+            </div>
+          </div>`);
+
+        // Update side panel
+        rows.forEach(([l,v]) => { familyInfo[l] = v; });
+        updateInfoPanel();
+      }
+    }
+
+    // Analysis - collapsible, default open
+    if (data.analysis) {
+      parts.push(`
+        <div class="collapse-block">
+          <div class="collapse-header open" onclick="toggleCollapse(this)">
+            <span class="collapse-title">🎯 亲缘地分析</span>
+            <span class="collapse-arrow">▼</span>
+          </div>
+          <div class="collapse-body open">
+            <div class="analysis-text">${data.analysis.replace(/\n/g,'<br>')}</div>
+          </div>
+        </div>`);
+    }
+
+    // Intermediaries - collapsible, default open
+    if (data.intermediaries && data.intermediaries.length > 0) {
+      const guideCards = data.intermediaries.map(g => `
+        <div class="guide-card">
+          <div class="guide-header">
+            <span class="guide-name">${g.name}</span>
+            <span class="guide-score">${g.match_score}分</span>
+          </div>
+          <div class="guide-location">📍 ${g.location}</div>
+          ${g.notes ? `<div class="guide-reason">${g.notes}</div>` : ''}
+          ${g.contact_info ? `<div class="guide-contact">✉️ ${g.contact_info}</div>` : ''}
+          ${g.success_cases && g.success_cases.length ? `
+            <div class="guide-cases">
+              ${g.success_cases.map(c=>`✓ ${c.description}（${c.year}）`).join('<br>')}
+            </div>` : ''}
+        </div>`).join('');
+
+      parts.push(`
+        <div class="collapse-block">
+          <div class="collapse-header open" onclick="toggleCollapse(this)">
+            <span class="collapse-title">👥 推荐向导（${data.intermediaries.length}位）</span>
+            <span class="collapse-arrow">▼</span>
+          </div>
+          <div class="collapse-body open">${guideCards}</div>
+        </div>`);
+    }
+
+    // Todos
+    if (data.todos && data.todos.length > 0) {
+      data.todos.forEach(t => {
+        if (!todos.find(x => x.text === t)) todos.push({text: t, done: false});
+      });
+      updateTodoPanel();
+      updateBadge();
+    }
+
+    return `<div class="agent-response">${parts.join('')}</div>`;
   }
 
-  function handleKey(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-  }
-
-  function autoResize(el) {
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
-  }
-
-  function showError(msg) {
-    const el = document.getElementById('error');
-    el.textContent = msg;
-    el.classList.add('visible');
-    setTimeout(() => el.classList.remove('visible'), 5000);
-  }
-
-  function formatMarkdown(text) {
+  // Render plain text (fallback)
+  function renderPlainText(text) {
     return text
-      .replace(/### (.+)/g, '<h4>$1</h4>')
-      .replace(/## (.+)/g, '<h3>$1</h3>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/---/g, '<hr>')
-      .replace(/\n/g, '<br>');
+      .replace(/### (.+)/g,'<h4 style="font-family:Noto Serif SC;color:var(--red);margin:.6em 0 .2em;font-size:.88rem;">$1</h4>')
+      .replace(/## (.+)/g,'<h3 style="font-family:Noto Serif SC;color:var(--red);margin:.8em 0 .3em;">$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\n/g,'<br>');
   }
 
-  function addMessage(role, text) {
+  function updateInfoPanel() {
+    const infoPanel = document.getElementById('infoPanel');
+    if (Object.keys(familyInfo).length > 0) {
+      infoPanel.innerHTML = Object.entries(familyInfo).map(([k,v])=>`
+        <div class="info-row">
+          <span class="info-label">${k}</span>
+          <span>${v}</span>
+        </div>`).join('');
+    }
+  }
+
+  function updateTodoPanel() {
+    const todoPanel = document.getElementById('todoPanel');
+    if (todos.length > 0) {
+      todoPanel.innerHTML = `<div class="todo-list">${todos.map((t,i)=>`
+        <div class="todo-item ${t.done?'done':''}" onclick="toggleTodo(${i})">
+          <div class="todo-check">${t.done?'✓':''}</div>
+          <span class="todo-text">${t.text}</span>
+        </div>`).join('')}</div>`;
+    }
+  }
+
+  function toggleTodo(i) { todos[i].done=!todos[i].done; updateTodoPanel(); updateBadge(); }
+
+  function addMessage(role, content, isHTML=false) {
     if (!conversationStarted) {
-      document.getElementById('welcome').style.display = 'none';
+      document.getElementById('welcome').style.display='none';
       document.getElementById('messages').classList.add('visible');
-      conversationStarted = true;
+      conversationStarted=true;
     }
     const messages = document.getElementById('messages');
     const div = document.createElement('div');
     div.className = `message ${role}`;
-    div.innerHTML = `
-      <div class="avatar ${role}">${role === 'agent' ? '向' : '我'}</div>
-      <div class="bubble">${formatMarkdown(text)}</div>
-    `;
+    const bubbleContent = isHTML ? content : renderPlainText(content);
+    div.innerHTML = `<div class="avatar ${role}">${role==='agent'?'向':'我'}</div><div class="bubble">${bubbleContent}</div>`;
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
     return div;
   }
 
-  // FIXED: separate show/hide for typing
-  function showTyping() {
-    const typing = document.getElementById('typing');
-    typing.classList.add('visible');
-    scrollToBottom();
-  }
-
-  function hideTyping() {
-    const typing = document.getElementById('typing');
-    typing.classList.remove('visible');
-  }
-
-  function scrollToBottom() {
-    const messages = document.getElementById('messages');
-    messages.scrollTop = messages.scrollHeight;
-  }
-
-  // Extract info and todos from agent response
-  function parseAgentResponse(text) {
-    // Extract family info
-    const姓氏 = text.match(/\*\*姓氏\*\*[：:]\s*([^\n*]+)/);
-    const祖籍 = text.match(/\*\*祖籍地\*\*[：:]\s*([^\n*]+)/);
-    const方言 = text.match(/\*\*方言类型\*\*[：:]\s*([^\n*]+)/);
-    const迁移 = text.match(/\*\*迁移时间\*\*[：:]\s*([^\n*]+)/);
-    const亲属 = text.match(/\*\*已知亲属\*\*[：:]\s*([^\n*]+)/);
-    const置信度 = text.match(/\*\*置信度\*\*[：:]\s*([^\n*]+)/);
-    const籍贯 = text.match(/\*\*可能的籍贯范围\*\*[：:]\s*([^\n*]+)/);
-
-    let updated = false;
-    if (姓氏 && !姓氏[1].includes('未提供')) { familyInfo.姓氏 = 姓氏[1].trim(); updated = true; }
-    if (祖籍 && !祖籍[1].includes('未提供')) { familyInfo.祖籍地 = 祖籍[1].trim(); updated = true; }
-    if (方言 && !方言[1].includes('未提供')) { familyInfo.方言 = 方言[1].trim(); updated = true; }
-    if (迁移 && !迁移[1].includes('未提供')) { familyInfo.迁移时间 = 迁移[1].trim(); updated = true; }
-    if (亲属 && !亲属[1].includes('未提供')) { familyInfo.已知亲属 = 亲属[1].trim(); updated = true; }
-    if (置信度) { familyInfo.置信度 = 置信度[1].trim(); updated = true; }
-    if (籍贯) { familyInfo.籍贯推断 = 籍贯[1].trim(); updated = true; }
-
-    // Extract todos from "下一步建议"
-    const todoSection = text.match(/下一步建议[^]*?(?=👥|💖|$)/);
-    if (todoSection) {
-      const items = todoSection[0].match(/\d+\.\s*\*\*(.+?)\*\*[：:]?\s*([^\n]+)?/g);
-      if (items) {
-        items.forEach(item => {
-          const match = item.match(/\d+\.\s*\*\*(.+?)\*\*/);
-          if (match) {
-            const todoText = match[1].trim();
-            if (!todos.find(t => t.text === todoText)) {
-              todos.push({ text: todoText, done: false });
-              updated = true;
-            }
-          }
-        });
-      }
-    }
-
-    if (updated) updatePanel();
-  }
-
-  function updatePanel() {
-    // Update info panel
-    const infoPanel = document.getElementById('infoPanel');
-    if (Object.keys(familyInfo).length > 0) {
-      const labels = {
-        姓氏: '姓氏', 祖籍地: '祖籍地', 方言: '方言',
-        迁移时间: '迁移', 已知亲属: '亲属', 籍贯推断: '籍贯推断', 置信度: '置信度'
-      };
-      infoPanel.innerHTML = Object.entries(familyInfo).map(([k, v]) => `
-        <div class="info-row">
-          <span class="info-label">${labels[k] || k}</span>
-          <span class="info-value">${v}</span>
-        </div>
-      `).join('');
-    }
-
-    // Update todo panel
-    const todoPanel = document.getElementById('todoPanel');
-    if (todos.length > 0) {
-      todoPanel.innerHTML = `<div class="todo-list">${todos.map((t, i) => `
-        <div class="todo-item ${t.done ? 'done' : ''}" onclick="toggleTodo(${i})">
-          <div class="todo-check">${t.done ? '✓' : ''}</div>
-          <span class="todo-text">${t.text}</span>
-        </div>
-      `).join('')}</div>`;
-
-      // Show badge if panel closed
-      if (!panelOpen) {
-        const undone = todos.filter(t => !t.done).length;
-        const badge = document.getElementById('todoBadge');
-        badge.textContent = undone;
-        badge.classList.toggle('visible', undone > 0);
-      }
-    }
-  }
-
-  function toggleTodo(i) {
-    todos[i].done = !todos[i].done;
-    updatePanel();
-  }
+  function showTyping() { document.getElementById('typing').classList.add('visible'); scrollDown(); }
+  function hideTyping() { document.getElementById('typing').classList.remove('visible'); }
+  function scrollDown() { const m=document.getElementById('messages'); m.scrollTop=m.scrollHeight; }
 
   async function sendMessage() {
     const input = document.getElementById('input');
     const text = input.value.trim();
     if (!text || isLoading) return;
-
-    input.value = '';
-    input.style.height = 'auto';
-    isLoading = true;
-    document.getElementById('sendBtn').disabled = true;
-
+    input.value=''; input.style.height='auto';
+    isLoading=true; document.getElementById('sendBtn').disabled=true;
     addMessage('user', text);
-    showTyping(); // FIXED: show typing immediately
+    showTyping();
 
     try {
       const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, session_id: sessionId })
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text, session_id:sessionId})
       });
-
       if (!response.ok) throw new Error(`请求失败 (${response.status})`);
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let fullText = '';
-      let agentDiv = null;
-      let firstChunk = true;
+      let fullText='', agentDiv=null, firstChunk=true;
 
       while (true) {
-        const { done, value } = await reader.read();
+        const {done, value} = await reader.read();
         if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
+        const chunk = decoder.decode(value,{stream:true});
+        for (const line of chunk.split('\n')) {
           if (line.startsWith('data:')) {
             try {
               const data = JSON.parse(line.slice(5).trim());
-              const newText = (data.type === 'answer' && data.content?.answer) ? data.content.answer : '';
-
+              const newText = (data.type==='answer'&&data.content?.answer) ? data.content.answer : '';
               if (newText) {
-                if (firstChunk) {
-                  hideTyping(); // FIXED: hide typing only when first real content arrives
-                  firstChunk = false;
-                }
+                if (firstChunk) { hideTyping(); firstChunk=false; }
                 fullText += newText;
-                if (!agentDiv) {
-                  agentDiv = addMessage('agent', fullText);
-                } else {
-                  agentDiv.querySelector('.bubble').innerHTML = formatMarkdown(fullText);
-                  scrollToBottom();
-                }
+                // Show streaming text as plain while loading
+                if (!agentDiv) { agentDiv=addMessage('agent', fullText); }
+                else { agentDiv.querySelector('.bubble').innerHTML=renderPlainText(fullText); scrollDown(); }
               }
-            } catch (e) { /* skip */ }
+            } catch(e){}
           }
         }
       }
@@ -735,17 +424,23 @@
       hideTyping();
 
       if (!fullText) {
-        addMessage('agent', '我收到了你的信息，正在整理思路……请稍等片刻。');
+        addMessage('agent','我收到了你的信息，正在整理中……');
       } else {
-        parseAgentResponse(fullText);
+        // Try to parse as JSON and re-render structured
+        const parsed = tryParseJSON(fullText);
+        if (parsed && agentDiv) {
+          agentDiv.querySelector('.bubble').innerHTML = renderStructuredResponse(parsed);
+          scrollDown();
+        }
+        // If no JSON found, plain text stays as-is
       }
 
-    } catch (err) {
+    } catch(err) {
       hideTyping();
-      showError('连接出现问题：' + err.message);
+      showError('连接出现问题：'+err.message);
     } finally {
-      isLoading = false;
-      document.getElementById('sendBtn').disabled = false;
+      isLoading=false;
+      document.getElementById('sendBtn').disabled=false;
       input.focus();
     }
   }
