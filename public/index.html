@@ -428,6 +428,7 @@
       } else {
         // Try to parse as JSON and re-render structured
         const parsed = tryParseJSON(fullText);
+        console.log('parsed result:', parsed);
         if (parsed && agentDiv) {
           agentDiv.querySelector('.bubble').innerHTML = renderStructuredResponse(parsed);
           scrollDown();
