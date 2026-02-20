@@ -461,6 +461,14 @@
     document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
   }
 
+  function formatMarkdown(text) {
+  return text
+    .replace(/### (.+)/g, '<h4 style="font-family:Noto Serif SC;color:var(--red);margin:0.8em 0 0.3em;font-size:0.95rem;">$1</h4>')
+    .replace(/## (.+)/g, '<h3 style="font-family:Noto Serif SC;color:var(--red);margin:1em 0 0.4em;">$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+  }
+
   async function sendMessage() {
     const input = document.getElementById('input');
     const text = input.value.trim();
@@ -509,7 +517,7 @@
                 if (!agentDiv) {
                   agentDiv = addMessage('agent', fullText);
                 } else {
-                  agentDiv.querySelector('.bubble').innerHTML = fullText.replace(/\n/g, '<br>');
+                  agentDiv.querySelector('.bubble').innerHTML = formatMarkdown(fullText);
                   document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
                 }
               }
