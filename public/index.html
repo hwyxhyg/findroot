@@ -20,11 +20,10 @@
   body {
     background: var(--paper);
     color: var(--ink);
-    font-family: 'Noto Sans SC', serif;
+    font-family: 'Noto Sans SC', sans-serif;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    position: relative;
     overflow-x: hidden;
   }
 
@@ -42,9 +41,7 @@
   body::after {
     content: '';
     position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
+    left: 0; top: 0; bottom: 0;
     width: 4px;
     background: linear-gradient(to bottom, transparent, var(--red), var(--gold), var(--red), transparent);
     opacity: 0.4;
@@ -52,67 +49,199 @@
 
   header {
     position: relative;
-    z-index: 1;
-    padding: 2rem 3rem 1.5rem;
+    z-index: 10;
+    padding: 1.2rem 2rem;
     border-bottom: 1px solid rgba(184,134,11,0.2);
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 1.5rem;
+    background: rgba(245,239,227,0.95);
+    backdrop-filter: blur(8px);
   }
 
-  .logo {
-    font-family: 'Noto Serif SC', serif;
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: var(--red);
-    letter-spacing: 0.1em;
-  }
+  .logo { font-family: 'Noto Serif SC', serif; font-size: 1.6rem; font-weight: 600; color: var(--red); letter-spacing: 0.1em; }
+  .logo-sub { font-size: 0.8rem; color: var(--gold); letter-spacing: 0.2em; font-weight: 300; }
 
-  .logo-sub {
-    font-size: 0.85rem;
-    color: var(--gold);
-    letter-spacing: 0.2em;
-    font-weight: 300;
-  }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
 
-  .status-dot {
-    margin-left: auto;
+  .panel-toggle {
+    background: rgba(200,149,108,0.1);
+    border: 1px solid rgba(200,149,108,0.3);
+    border-radius: 4px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.78rem;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: 'Noto Sans SC', sans-serif;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--warm);
-    opacity: 0.7;
+    gap: 0.4rem;
+  }
+  .panel-toggle:hover { background: rgba(200,149,108,0.2); }
+  .panel-toggle .badge {
+    background: var(--red);
+    color: white;
+    border-radius: 10px;
+    padding: 0 5px;
+    font-size: 0.65rem;
+    display: none;
+  }
+  .panel-toggle .badge.visible { display: inline; }
+
+  .status-dot { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--warm); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #5a8a5a; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* Layout */
+  .app-body {
+    flex: 1;
+    display: flex;
+    position: relative;
+    overflow: hidden;
   }
 
-  .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #5a8a5a;
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  .main {
+  /* Chat area */
+  .chat-area {
     flex: 1;
     display: flex;
     flex-direction: column;
     max-width: 780px;
     margin: 0 auto;
     width: 100%;
-    padding: 2rem 2rem 0;
+    padding: 1.5rem 2rem 0;
     position: relative;
     z-index: 1;
+    transition: max-width 0.3s ease;
   }
 
+  /* Side panel */
+  .side-panel {
+    width: 0;
+    overflow: hidden;
+    transition: width 0.3s ease;
+    border-left: 1px solid rgba(184,134,11,0.15);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(4px);
+    position: relative;
+    z-index: 5;
+    flex-shrink: 0;
+  }
+
+  .side-panel.open {
+    width: 320px;
+  }
+
+  .side-panel-inner {
+    width: 320px;
+    height: 100%;
+    overflow-y: auto;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .panel-section {
+    background: white;
+    border: 1px solid rgba(184,134,11,0.15);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .panel-section-header {
+    padding: 0.7rem 1rem;
+    background: rgba(200,149,108,0.08);
+    border-bottom: 1px solid rgba(184,134,11,0.1);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 0.82rem;
+    color: var(--red);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-section-body {
+    padding: 0.8rem 1rem;
+    font-size: 0.8rem;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+
+  .info-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+    align-items: flex-start;
+  }
+
+  .info-label {
+    color: var(--gold);
+    font-weight: 400;
+    min-width: 70px;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    margin-top: 1px;
+  }
+
+  .info-value { color: var(--ink); }
+  .info-empty { color: rgba(26,18,8,0.3); font-style: italic; }
+
+  /* Todo list */
+  .todo-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 4px;
+    border: 1px solid rgba(184,134,11,0.15);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+
+  .todo-item:hover { background: rgba(200,149,108,0.06); }
+  .todo-item.done { opacity: 0.5; }
+  .todo-item.done .todo-text { text-decoration: line-through; }
+
+  .todo-check {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid rgba(184,134,11,0.4);
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-size: 10px;
+    color: white;
+  }
+
+  .todo-item.done .todo-check {
+    background: var(--gold);
+    border-color: var(--gold);
+  }
+
+  .empty-panel {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: rgba(26,18,8,0.3);
+    font-size: 0.8rem;
+    line-height: 1.8;
+  }
+
+  /* Welcome */
   .welcome {
     text-align: center;
-    padding: 4rem 2rem;
+    padding: 3rem 2rem;
     animation: fadeIn 1s ease;
   }
 
@@ -126,97 +255,57 @@
     letter-spacing: 0.3em;
   }
 
-  .welcome h1 {
-    font-family: 'Noto Serif SC', serif;
-    font-size: 1.6rem;
-    font-weight: 400;
-    color: var(--ink);
-    margin-bottom: 0.8rem;
-    letter-spacing: 0.05em;
-  }
+  .welcome h1 { font-family: 'Noto Serif SC', serif; font-size: 1.5rem; font-weight: 400; margin-bottom: 0.8rem; }
+  .welcome p { font-size: 0.88rem; color: var(--warm); line-height: 1.8; max-width: 400px; margin: 0 auto; font-weight: 300; }
 
-  .welcome p {
-    font-size: 0.9rem;
-    color: var(--warm);
-    line-height: 1.8;
-    max-width: 420px;
-    margin: 0 auto;
-    font-weight: 300;
-  }
-
-  .welcome-prompts {
-    margin-top: 2.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    align-items: center;
-  }
+  .welcome-prompts { margin-top: 2rem; display: flex; flex-direction: column; gap: 0.5rem; align-items: center; }
 
   .prompt-chip {
     background: rgba(200,149,108,0.1);
     border: 1px solid rgba(200,149,108,0.25);
     border-radius: 2px;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.82rem;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.8rem;
     color: var(--ink);
     cursor: pointer;
     transition: all 0.2s;
-    letter-spacing: 0.02em;
     max-width: 380px;
     text-align: center;
   }
+  .prompt-chip:hover { background: rgba(200,149,108,0.2); transform: translateX(4px); }
 
-  .prompt-chip:hover {
-    background: rgba(200,149,108,0.2);
-    border-color: var(--warm);
-    transform: translateX(4px);
-  }
-
+  /* Messages */
   .messages {
     flex: 1;
     overflow-y: auto;
     padding-bottom: 1rem;
     display: none;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.2rem;
   }
-
   .messages.visible { display: flex; }
 
-  .message {
-    display: flex;
-    gap: 1rem;
-    animation: slideIn 0.3s ease;
-  }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
+  .message { display: flex; gap: 0.8rem; animation: slideIn 0.3s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   .message.user { flex-direction: row-reverse; }
 
   .avatar {
-    width: 36px;
-    height: 36px;
+    width: 32px; height: 32px;
     border-radius: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     font-family: 'Noto Serif SC', serif;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     flex-shrink: 0;
     margin-top: 2px;
   }
-
   .avatar.agent { background: var(--red); color: var(--paper); }
   .avatar.user { background: var(--ink); color: var(--paper); opacity: 0.7; }
 
   .bubble {
-    max-width: 72%;
-    padding: 1rem 1.2rem;
+    max-width: 75%;
+    padding: 0.9rem 1.1rem;
     line-height: 1.8;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     font-weight: 300;
   }
 
@@ -225,7 +314,6 @@
     border: 1px solid rgba(184,134,11,0.15);
     border-radius: 0 8px 8px 8px;
     box-shadow: 0 2px 12px var(--shadow);
-    color: var(--ink);
   }
 
   .message.user .bubble {
@@ -235,20 +323,24 @@
     opacity: 0.85;
   }
 
+  .bubble h3 { font-family: 'Noto Serif SC', serif; color: var(--red); margin: 0.8em 0 0.3em; font-size: 0.95rem; }
+  .bubble h4 { font-family: 'Noto Serif SC', serif; color: var(--red); margin: 0.6em 0 0.2em; font-size: 0.88rem; }
+  .bubble strong { font-weight: 600; color: var(--ink); }
+  .bubble hr { border: none; border-top: 1px solid rgba(184,134,11,0.15); margin: 0.8em 0; }
+
+  /* Typing indicator - FIXED */
   .typing {
     display: none;
-    gap: 1rem;
+    gap: 0.8rem;
     align-items: flex-start;
-    animation: slideIn 0.3s ease;
   }
-
   .typing.visible { display: flex; }
 
   .typing-dots {
     background: white;
     border: 1px solid rgba(184,134,11,0.15);
     border-radius: 0 8px 8px 8px;
-    padding: 1rem 1.4rem;
+    padding: 0.9rem 1.2rem;
     display: flex;
     gap: 4px;
     align-items: center;
@@ -256,26 +348,25 @@
   }
 
   .typing-dots span {
-    width: 6px;
-    height: 6px;
+    width: 6px; height: 6px;
     border-radius: 50%;
     background: var(--warm);
     animation: bounce 1.2s infinite;
   }
-
   .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
   .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 
   @keyframes bounce {
     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-    30% { transform: translateY(-6px); opacity: 1; }
+    30% { transform: translateY(-5px); opacity: 1; }
   }
 
+  /* Input */
   .input-area {
     position: sticky;
     bottom: 0;
     background: linear-gradient(to top, var(--paper) 80%, transparent);
-    padding: 1.5rem 0 2rem;
+    padding: 1rem 0 1.5rem;
     z-index: 10;
   }
 
@@ -284,77 +375,64 @@
     border: 1px solid rgba(184,134,11,0.3);
     border-radius: 3px;
     background: white;
-    box-shadow: 0 4px 24px var(--shadow);
+    box-shadow: 0 4px 20px var(--shadow);
     overflow: hidden;
     transition: border-color 0.2s;
   }
-
   .input-wrap:focus-within { border-color: var(--warm); }
 
   textarea {
     flex: 1;
-    border: none;
-    outline: none;
-    padding: 1rem 1.2rem;
+    border: none; outline: none;
+    padding: 0.9rem 1.1rem;
     font-family: 'Noto Sans SC', sans-serif;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     font-weight: 300;
     color: var(--ink);
     background: transparent;
     resize: none;
-    min-height: 52px;
-    max-height: 160px;
+    min-height: 48px;
+    max-height: 140px;
     line-height: 1.6;
   }
-
   textarea::placeholder { color: rgba(26,18,8,0.3); }
 
   .send-btn {
-    background: none;
-    border: none;
+    background: none; border: none;
     border-left: 1px solid rgba(184,134,11,0.2);
-    padding: 0 1.2rem;
+    padding: 0 1.1rem;
     cursor: pointer;
     color: var(--warm);
     transition: all 0.2s;
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
+    font-size: 1rem;
+    display: flex; align-items: center;
   }
-
   .send-btn:hover { background: rgba(200,149,108,0.1); color: var(--red); }
   .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-  .hint {
-    text-align: center;
-    font-size: 0.72rem;
-    color: rgba(26,18,8,0.3);
-    margin-top: 0.6rem;
-    letter-spacing: 0.05em;
-  }
+  .hint { text-align: center; font-size: 0.7rem; color: rgba(26,18,8,0.25); margin-top: 0.5rem; }
 
   .error-msg {
     background: rgba(139,32,32,0.06);
     border: 1px solid rgba(139,32,32,0.2);
     border-radius: 4px;
-    padding: 0.7rem 1rem;
-    font-size: 0.82rem;
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
     color: var(--red);
     text-align: center;
     display: none;
     margin-bottom: 0.5rem;
   }
-
   .error-msg.visible { display: block; }
 
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(16px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
-  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar { width: 3px; }
   .messages::-webkit-scrollbar-track { background: transparent; }
   .messages::-webkit-scrollbar-thumb { background: rgba(200,149,108,0.3); border-radius: 2px; }
+  .side-panel-inner::-webkit-scrollbar { width: 3px; }
+  .side-panel-inner::-webkit-scrollbar-track { background: transparent; }
+  .side-panel-inner::-webkit-scrollbar-thumb { background: rgba(200,149,108,0.2); border-radius: 2px; }
 </style>
 </head>
 <body>
@@ -362,56 +440,91 @@
 <header>
   <div class="logo">寻根</div>
   <div class="logo-sub">归处 · 海外华人寻根向导</div>
-  <div class="status-dot">
-    <span class="dot"></span>
-    向导在线
+  <div class="header-right">
+    <button class="panel-toggle" onclick="togglePanel()" id="panelBtn">
+      📋 寻根档案
+      <span class="badge" id="todoBadge">0</span>
+    </button>
+    <div class="status-dot">
+      <span class="dot"></span>
+      向导在线
+    </div>
   </div>
 </header>
 
-<div class="main">
-  <div class="welcome" id="welcome">
-    <div class="welcome-character">根</div>
-    <h1>树有根，人不能忘本</h1>
-    <p>告诉我你所知道的一切——哪怕只是一个模糊的地名，或是老人留下的只言片语。我们一起寻找回家的路。</p>
-    <div class="welcome-prompts">
-      <div class="prompt-chip" onclick="usePrompt(this)">我是马来西亚华人，只知道祖籍是福建，想找到更具体的地方</div>
-      <div class="prompt-chip" onclick="usePrompt(this)">爷爷说我们是广东人，家里说客家话，想帮他完成回乡的心愿</div>
-      <div class="prompt-chip" onclick="usePrompt(this)">我有一张老照片和一个祖先的名字，不知道从哪里开始寻根</div>
+<div class="app-body">
+  <div class="chat-area">
+    <div class="welcome" id="welcome">
+      <div class="welcome-character">根</div>
+      <h1>树有根，人不能忘本</h1>
+      <p>告诉我你所知道的一切——哪怕只是一个模糊的地名，或是老人留下的只言片语。</p>
+      <div class="welcome-prompts">
+        <div class="prompt-chip" onclick="usePrompt(this)">我是马来西亚华人，只知道祖籍是福建，想找到更具体的地方</div>
+        <div class="prompt-chip" onclick="usePrompt(this)">爷爷说我们是广东人，家里说客家话，想帮他完成回乡的心愿</div>
+        <div class="prompt-chip" onclick="usePrompt(this)">我有一张老照片和一个祖先的名字，不知道从哪里开始寻根</div>
+      </div>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="typing" id="typing">
+      <div class="avatar agent">向</div>
+      <div class="typing-dots">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="error-msg" id="error"></div>
+      <div class="input-wrap">
+        <textarea id="input" placeholder="告诉我你知道的关于家族的任何信息……" rows="1"
+          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
+      </div>
+      <div class="hint">按 Enter 发送 · Shift+Enter 换行</div>
     </div>
   </div>
 
-  <div class="messages" id="messages"></div>
+  <!-- Side Panel -->
+  <div class="side-panel" id="sidePanel">
+    <div class="side-panel-inner">
 
-  <div class="typing" id="typing">
-    <div class="avatar agent">向</div>
-    <div class="typing-dots">
-      <span></span><span></span><span></span>
-    </div>
-  </div>
+      <div class="panel-section">
+        <div class="panel-section-header">📋 已收集的信息</div>
+        <div class="panel-section-body" id="infoPanel">
+          <div class="empty-panel">开始对话后，<br>我会在这里整理你的家族信息</div>
+        </div>
+      </div>
 
-  <div class="input-area">
-    <div class="error-msg" id="error"></div>
-    <div class="input-wrap">
-      <textarea 
-        id="input" 
-        placeholder="告诉我你知道的关于家族的任何信息……" 
-        rows="1"
-        onkeydown="handleKey(event)"
-        oninput="autoResize(this)"
-      ></textarea>
-      <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
+      <div class="panel-section">
+        <div class="panel-section-header">✅ 下一步行动</div>
+        <div class="panel-section-body" id="todoPanel">
+          <div class="empty-panel">根据寻根进展，<br>我会为你生成行动清单</div>
+        </div>
+      </div>
+
     </div>
-    <div class="hint">按 Enter 发送 · Shift+Enter 换行</div>
   </div>
 </div>
 
 <script>
-  // 调用自己的Vercel后端，不直接暴露token
   const API_URL = '/api/chat';
-
   let sessionId = 'sess_' + Math.random().toString(36).substr(2, 16);
   let isLoading = false;
   let conversationStarted = false;
+  let panelOpen = false;
+  let todos = [];
+  let familyInfo = {};
+
+  function togglePanel() {
+    panelOpen = !panelOpen;
+    document.getElementById('sidePanel').classList.toggle('open', panelOpen);
+    document.getElementById('panelBtn').textContent = panelOpen ? '✕ 关闭档案' : '📋 寻根档案';
+    if (panelOpen) {
+      const badge = document.getElementById('todoBadge');
+      badge.classList.remove('visible');
+    }
+  }
 
   function usePrompt(el) {
     document.getElementById('input').value = el.textContent;
@@ -419,15 +532,12 @@
   }
 
   function handleKey(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }
 
   function autoResize(el) {
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
   }
 
   function showError(msg) {
@@ -437,36 +547,130 @@
     setTimeout(() => el.classList.remove('visible'), 5000);
   }
 
+  function formatMarkdown(text) {
+    return text
+      .replace(/### (.+)/g, '<h4>$1</h4>')
+      .replace(/## (.+)/g, '<h3>$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/---/g, '<hr>')
+      .replace(/\n/g, '<br>');
+  }
+
   function addMessage(role, text) {
     if (!conversationStarted) {
       document.getElementById('welcome').style.display = 'none';
       document.getElementById('messages').classList.add('visible');
       conversationStarted = true;
     }
-
     const messages = document.getElementById('messages');
     const div = document.createElement('div');
     div.className = `message ${role}`;
     div.innerHTML = `
       <div class="avatar ${role}">${role === 'agent' ? '向' : '我'}</div>
-      <div class="bubble">${text.replace(/\n/g, '<br>')}</div>
+      <div class="bubble">${formatMarkdown(text)}</div>
     `;
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
     return div;
   }
 
-  function setTyping(visible) {
-    document.getElementById('typing').classList.toggle('visible', visible);
-    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+  // FIXED: separate show/hide for typing
+  function showTyping() {
+    const typing = document.getElementById('typing');
+    typing.classList.add('visible');
+    scrollToBottom();
   }
 
-  function formatMarkdown(text) {
-  return text
-    .replace(/### (.+)/g, '<h4 style="font-family:Noto Serif SC;color:var(--red);margin:0.8em 0 0.3em;font-size:0.95rem;">$1</h4>')
-    .replace(/## (.+)/g, '<h3 style="font-family:Noto Serif SC;color:var(--red);margin:1em 0 0.4em;">$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>');
+  function hideTyping() {
+    const typing = document.getElementById('typing');
+    typing.classList.remove('visible');
+  }
+
+  function scrollToBottom() {
+    const messages = document.getElementById('messages');
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  // Extract info and todos from agent response
+  function parseAgentResponse(text) {
+    // Extract family info
+    const姓氏 = text.match(/\*\*姓氏\*\*[：:]\s*([^\n*]+)/);
+    const祖籍 = text.match(/\*\*祖籍地\*\*[：:]\s*([^\n*]+)/);
+    const方言 = text.match(/\*\*方言类型\*\*[：:]\s*([^\n*]+)/);
+    const迁移 = text.match(/\*\*迁移时间\*\*[：:]\s*([^\n*]+)/);
+    const亲属 = text.match(/\*\*已知亲属\*\*[：:]\s*([^\n*]+)/);
+    const置信度 = text.match(/\*\*置信度\*\*[：:]\s*([^\n*]+)/);
+    const籍贯 = text.match(/\*\*可能的籍贯范围\*\*[：:]\s*([^\n*]+)/);
+
+    let updated = false;
+    if (姓氏 && !姓氏[1].includes('未提供')) { familyInfo.姓氏 = 姓氏[1].trim(); updated = true; }
+    if (祖籍 && !祖籍[1].includes('未提供')) { familyInfo.祖籍地 = 祖籍[1].trim(); updated = true; }
+    if (方言 && !方言[1].includes('未提供')) { familyInfo.方言 = 方言[1].trim(); updated = true; }
+    if (迁移 && !迁移[1].includes('未提供')) { familyInfo.迁移时间 = 迁移[1].trim(); updated = true; }
+    if (亲属 && !亲属[1].includes('未提供')) { familyInfo.已知亲属 = 亲属[1].trim(); updated = true; }
+    if (置信度) { familyInfo.置信度 = 置信度[1].trim(); updated = true; }
+    if (籍贯) { familyInfo.籍贯推断 = 籍贯[1].trim(); updated = true; }
+
+    // Extract todos from "下一步建议"
+    const todoSection = text.match(/下一步建议[^]*?(?=👥|💖|$)/);
+    if (todoSection) {
+      const items = todoSection[0].match(/\d+\.\s*\*\*(.+?)\*\*[：:]?\s*([^\n]+)?/g);
+      if (items) {
+        items.forEach(item => {
+          const match = item.match(/\d+\.\s*\*\*(.+?)\*\*/);
+          if (match) {
+            const todoText = match[1].trim();
+            if (!todos.find(t => t.text === todoText)) {
+              todos.push({ text: todoText, done: false });
+              updated = true;
+            }
+          }
+        });
+      }
+    }
+
+    if (updated) updatePanel();
+  }
+
+  function updatePanel() {
+    // Update info panel
+    const infoPanel = document.getElementById('infoPanel');
+    if (Object.keys(familyInfo).length > 0) {
+      const labels = {
+        姓氏: '姓氏', 祖籍地: '祖籍地', 方言: '方言',
+        迁移时间: '迁移', 已知亲属: '亲属', 籍贯推断: '籍贯推断', 置信度: '置信度'
+      };
+      infoPanel.innerHTML = Object.entries(familyInfo).map(([k, v]) => `
+        <div class="info-row">
+          <span class="info-label">${labels[k] || k}</span>
+          <span class="info-value">${v}</span>
+        </div>
+      `).join('');
+    }
+
+    // Update todo panel
+    const todoPanel = document.getElementById('todoPanel');
+    if (todos.length > 0) {
+      todoPanel.innerHTML = `<div class="todo-list">${todos.map((t, i) => `
+        <div class="todo-item ${t.done ? 'done' : ''}" onclick="toggleTodo(${i})">
+          <div class="todo-check">${t.done ? '✓' : ''}</div>
+          <span class="todo-text">${t.text}</span>
+        </div>
+      `).join('')}</div>`;
+
+      // Show badge if panel closed
+      if (!panelOpen) {
+        const undone = todos.filter(t => !t.done).length;
+        const badge = document.getElementById('todoBadge');
+        badge.textContent = undone;
+        badge.classList.toggle('visible', undone > 0);
+      }
+    }
+  }
+
+  function toggleTodo(i) {
+    todos[i].done = !todos[i].done;
+    updatePanel();
   }
 
   async function sendMessage() {
@@ -480,7 +684,7 @@
     document.getElementById('sendBtn').disabled = true;
 
     addMessage('user', text);
-    setTyping(true);
+    showTyping(); // FIXED: show typing immediately
 
     try {
       const response = await fetch(API_URL, {
@@ -489,16 +693,13 @@
         body: JSON.stringify({ text, session_id: sessionId })
       });
 
-      if (!response.ok) {
-        throw new Error(`请求失败 (${response.status})`);
-      }
+      if (!response.ok) throw new Error(`请求失败 (${response.status})`);
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullText = '';
       let agentDiv = null;
-
-      setTyping(false);
+      let firstChunk = true;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -508,31 +709,40 @@
         const lines = chunk.split('\n');
 
         for (const line of lines) {
-        if (line.startsWith('data:')) {
-          try {
-            const data = JSON.parse(line.slice(5).trim());
-            let newText = (data.type === 'answer' && data.content?.answer) ? data.content.answer : '';
+          if (line.startsWith('data:')) {
+            try {
+              const data = JSON.parse(line.slice(5).trim());
+              const newText = (data.type === 'answer' && data.content?.answer) ? data.content.answer : '';
+
               if (newText) {
+                if (firstChunk) {
+                  hideTyping(); // FIXED: hide typing only when first real content arrives
+                  firstChunk = false;
+                }
                 fullText += newText;
                 if (!agentDiv) {
                   agentDiv = addMessage('agent', fullText);
                 } else {
                   agentDiv.querySelector('.bubble').innerHTML = formatMarkdown(fullText);
-                  document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+                  scrollToBottom();
                 }
               }
-            } catch (e) { /* skip non-JSON */ }
+            } catch (e) { /* skip */ }
           }
         }
       }
 
+      hideTyping();
+
       if (!fullText) {
         addMessage('agent', '我收到了你的信息，正在整理思路……请稍等片刻。');
+      } else {
+        parseAgentResponse(fullText);
       }
 
     } catch (err) {
-      setTyping(false);
-      showError('连接出现问题，请稍后重试：' + err.message);
+      hideTyping();
+      showError('连接出现问题：' + err.message);
     } finally {
       isLoading = false;
       document.getElementById('sendBtn').disabled = false;
