@@ -63,7 +63,7 @@
   .avatar{width:30px;height:30px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif SC',serif;font-size:.75rem;flex-shrink:0;margin-top:2px;}
   .avatar.agent{background:var(--red);color:var(--paper);}
   .avatar.user{background:var(--ink);color:var(--paper);opacity:.7;}
-  .bubble{max-width:720px;padding:.85rem 1rem;line-height:1.8;font-size:.86rem;font-weight:300;}
+  .bubble{max-width:520px;padding:.85rem 1rem;line-height:1.8;font-size:.86rem;font-weight:300;}
   .message.agent .bubble{background:white;border:1px solid rgba(184,134,11,.15);border-radius:0 8px 8px 8px;box-shadow:0 2px 10px var(--shadow);}
   .message.user .bubble{background:var(--ink);color:var(--paper);border-radius:8px 0 8px 8px;opacity:.85;}
 
@@ -374,28 +374,11 @@
   }
 
   // 从📋章节提取字段到familyInfo
-  function extractInfoFields(text) {
-    // surname
-    let m = text.match(/(?:姓氏|姓)\s*[:：]?\s*([\u4e00-\u9fa5A-Za-z\-]+)/);
-    if (m) familyInfo['姓氏'] = m[1].trim();
-    // location
-    m = text.match(/(?:祖籍地|祖籍|籍贯|来自)\s*[:：]?\s*([^\n，。,\[【]+)/);
-    if (m) { const v = m[1].replace(/（[^）]*）/g,'').trim(); if (v && !['未知','待补充','请提供'].some(s=>v.includes(s))) familyInfo['祖籍'] = v; }
-    // dialect
-    m = text.match(/(?:方言类型|方言|语种)\s*[:：]?\s*([^\n，。,\[【]+)/);
-    if (m) { const v = m[1].replace(/（[^）]*）/g,'').trim(); if (v && !['未知','待补充','请提供'].some(s=>v.includes(s))) familyInfo['方言'] = v; }
-    // migration
-    m = text.match(/(?:迁移时间|迁移)\s*[:：]?\s*([^\n，。,\[【]+)/);
-    if (m) { const v = m[1].replace(/（[^）]*）/g,'').trim(); if (v && !['未知','待补充','请提供'].some(s=>v.includes(s))) familyInfo['迁移'] = v; }
-    // kin
-    m = text.match(/(?:已知亲属)\s*[:：]?\s*([^\n\[【]+)/);
-    if (m) { const v = m[1].replace(/（[^）]*）/g,'').trim(); if (v && !['未知','待补充','请提供'].some(s=>v.includes(s))) familyInfo['亲属'] = v; }
-    // clue
-    m = text.match(/(?:其他线索)\s*[:：]?\s*([^\n\[【]+)/);
-    if (m) { const v = m[1].trim(); if (v && v.length > 1) familyInfo['线索'] = v; }
+ function extractInfoFields(text) {
+    familyInfo._raw = text;
     updateInfoPanel();
   }
-
+  
   // 从💡章节提取todos
   function extractTodos(text) {
     const todoRe = /^[1-9][\.、]\s*(.{5,50})$/gm;
@@ -416,12 +399,8 @@
 
   function updateInfoPanel() {
     const infoPanel = document.getElementById('infoPanel');
-    if (Object.keys(familyInfo).length > 0) {
-      infoPanel.innerHTML = Object.entries(familyInfo).map(([k,v])=>`
-        <div class="info-row">
-          <span class="info-label">${escapeHTML(k)}</span>
-          <span>${escapeHTML(v)}</span>
-        </div>`).join('');
+    if (familyInfo._raw) {
+      infoPanel.innerHTML = `<div style="font-size:.78rem;line-height:1.9;">${renderPlainText(familyInfo._raw)}</div>`;
     } else {
       infoPanel.innerHTML = `<div class="empty-panel">开始对话后，<br>信息会自动整理在这里</div>`;
     }
