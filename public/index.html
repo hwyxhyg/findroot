@@ -221,7 +221,6 @@
     header.nextElementSibling.classList.toggle('open');
   }
 
-  // Try to parse JSON from agent text: find a balanced {...} block and parse it
   function tryParseJSON(text) {
     if (!text || typeof text !== 'string') return null;
     const start = text.indexOf('{');
@@ -233,109 +232,64 @@
       else if (ch === '}') depth--;
       if (depth === 0) {
         const candidate = text.slice(start, i + 1);
-        try {
-          return JSON.parse(candidate);
-        } catch (e) {
-          return null;
-        }
+        try { return JSON.parse(candidate); } catch (e) { return null; }
       }
     }
     return null;
   }
 
-  // Render structured JSON response
   function renderStructuredResponse(data) {
     const parts = [];
-
-    // Conversation message
     if (data.message) {
       parts.push(`<div class="agent-message-text">${escapeHTML(data.message).replace(/\n/g,'<br>')}</div>`);
     }
-
-    // User info summary - collapsible, default closed
     if (data.user_info) {
       const info = data.user_info;
       const rows = [
-        ['姓氏', info.surname],
-        ['祖籍', info.location],
-        ['方言', info.dialect],
-        ['迁移', info.migration_info],
+        ['姓氏', info.surname],['祖籍', info.location],['方言', info.dialect],['迁移', info.migration_info],
       ].filter(([,v]) => v && v !== '未提供' && v !== '未知');
-
       if (rows.length) {
-        parts.push(`
-          <div class="collapse-block">
-            <div class="collapse-header" onclick="toggleCollapse(this)">
-              <span class="collapse-title">📋 已收集信息</span>
-              <span class="collapse-arrow">▼</span>
-            </div>
-            <div class="collapse-body">
-              <div class="info-grid">
-                ${rows.map(([l,v])=>`<div class="info-grid-row"><span class="info-grid-label">${escapeHTML(l)}</span><span class="info-grid-value">${escapeHTML(v)}</span></div>`).join('')}
-              </div>
-            </div>
-          </div>`);
-
-        // Update side panel
+        parts.push(`<div class="collapse-block">
+          <div class="collapse-header" onclick="toggleCollapse(this)">
+            <span class="collapse-title">📋 已收集信息</span><span class="collapse-arrow">▼</span>
+          </div>
+          <div class="collapse-body"><div class="info-grid">
+            ${rows.map(([l,v])=>`<div class="info-grid-row"><span class="info-grid-label">${escapeHTML(l)}</span><span class="info-grid-value">${escapeHTML(v)}</span></div>`).join('')}
+          </div></div></div>`);
         rows.forEach(([l,v]) => { familyInfo[l] = v; });
         updateInfoPanel();
       }
     }
-
-    // Analysis - collapsible, default open
     if (data.analysis) {
-      parts.push(`
-        <div class="collapse-block">
-          <div class="collapse-header open" onclick="toggleCollapse(this)">
-            <span class="collapse-title">🎯 亲缘地分析</span>
-            <span class="collapse-arrow">▼</span>
-          </div>
-            <div class="collapse-body open">
-            <div class="analysis-text">${escapeHTML(data.analysis).replace(/\n/g,'<br>')}</div>
-          </div>
-        </div>`);
+      parts.push(`<div class="collapse-block">
+        <div class="collapse-header open" onclick="toggleCollapse(this)">
+          <span class="collapse-title">🎯 亲缘地分析</span><span class="collapse-arrow">▼</span>
+        </div>
+        <div class="collapse-body open"><div class="analysis-text">${escapeHTML(data.analysis).replace(/\n/g,'<br>')}</div></div>
+      </div>`);
     }
-
-    // Intermediaries - collapsible, default open
     if (data.intermediaries && data.intermediaries.length > 0) {
       const guideCards = data.intermediaries.map(g => `
         <div class="guide-card">
-          <div class="guide-header">
-            <span class="guide-name">${escapeHTML(g.name)}</span>
-            <span class="guide-score">${escapeHTML(g.match_score)}分</span>
-          </div>
+          <div class="guide-header"><span class="guide-name">${escapeHTML(g.name)}</span><span class="guide-score">${escapeHTML(String(g.match_score))}分</span></div>
           <div class="guide-location">📍 ${escapeHTML(g.location)}</div>
           ${g.notes ? `<div class="guide-reason">${escapeHTML(g.notes)}</div>` : ''}
           ${g.contact_info ? `<div class="guide-contact">✉️ ${escapeHTML(g.contact_info)}</div>` : ''}
-          ${g.success_cases && g.success_cases.length ? `
-            <div class="guide-cases">
-              ${g.success_cases.map(c=>`✓ ${escapeHTML(c.description)}（${escapeHTML(c.year)}）`).join('<br>')}
-            </div>` : ''}
+          ${g.success_cases && g.success_cases.length ? `<div class="guide-cases">${g.success_cases.map(c=>`✓ ${escapeHTML(c.description)}（${escapeHTML(String(c.year))}）`).join('<br>')}</div>` : ''}
         </div>`).join('');
-
-      parts.push(`
-        <div class="collapse-block">
-          <div class="collapse-header open" onclick="toggleCollapse(this)">
-            <span class="collapse-title">👥 推荐向导（${data.intermediaries.length}位）</span>
-            <span class="collapse-arrow">▼</span>
-          </div>
-          <div class="collapse-body open">${guideCards}</div>
-        </div>`);
+      parts.push(`<div class="collapse-block">
+        <div class="collapse-header open" onclick="toggleCollapse(this)">
+          <span class="collapse-title">👥 推荐向导（${data.intermediaries.length}位）</span><span class="collapse-arrow">▼</span>
+        </div>
+        <div class="collapse-body open">${guideCards}</div></div>`);
     }
-
-    // Todos
     if (data.todos && data.todos.length > 0) {
-      data.todos.forEach(t => {
-        if (!todos.find(x => x.text === t)) todos.push({text: t, done: false});
-      });
-      updateTodoPanel();
-      updateBadge();
+      data.todos.forEach(t => { if (!todos.find(x => x.text === t)) todos.push({text: t, done: false}); });
+      updateTodoPanel(); updateBadge();
     }
-
     return `<div class="agent-response">${parts.join('')}</div>`;
   }
 
-  // Render plain text (fallback)
   function renderPlainText(text) {
     return text
       .replace(/### (.+)/g,'<h4 style="font-family:Noto Serif SC;color:var(--red);margin:.6em 0 .2em;font-size:.88rem;">$1</h4>')
@@ -344,31 +298,124 @@
       .replace(/\n/g,'<br>');
   }
 
-  // Escape HTML to avoid XSS when inserting backend-provided text
   function escapeHTML(str) {
     if (str === null || str === undefined) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
-  // Normalize structured payload: accept either {type:'structured', content:{}} or plain content object
-  function normalizeStructured(payload) {
-    const data = (payload && payload.type === 'structured' && payload.content) ? payload.content : (payload && payload.content) ? payload.content : payload;
-    if (!data) return null;
-    // Compatibility: if intermediaries have match_reasons array but no notes, join them into notes
-    if (Array.isArray(data.intermediaries)) {
-      data.intermediaries = data.intermediaries.map(g => {
-        if (!g.notes && Array.isArray(g.match_reasons)) {
-          try { g.notes = g.match_reasons.join('；'); } catch(e) { g.notes = String(g.match_reasons); }
+  // 把Agent回复按emoji章节切割，渲染成折叠块
+  function renderSections(text) {
+    // 定义章节emoji及其配置：[标题, 默认展开, 是否提取到档案]
+    const sectionDefs = [
+      { emoji: '📋', label: '已收集信息', open: false, extract: true },
+      { emoji: '🎯', label: '亲缘地分析', open: true,  extract: false },
+      { emoji: '👥', label: '推荐向导',   open: true,  extract: false },
+      { emoji: '💡', label: '下一步建议', open: true,  extract: true  },
+      { emoji: '💬', label: '向导寄语',   open: true,  extract: false },
+      { emoji: '💌', label: '情感陪伴',   open: true,  extract: false },
+      { emoji: '📊', label: '进展记录',   open: false, extract: false },
+    ];
+
+    // 找出文字里出现的所有章节起始位置
+    const found = [];
+    for (const def of sectionDefs) {
+      let idx = 0;
+      while (true) {
+        const pos = text.indexOf(def.emoji, idx);
+        if (pos === -1) break;
+        // 确认是行首（pos==0或前面是换行）
+        if (pos === 0 || text[pos-1] === '\n') {
+          found.push({ pos, def });
         }
-        return g;
-      });
+        idx = pos + 1;
+      }
     }
-    return data;
+    found.sort((a,b) => a.pos - b.pos);
+
+    // 如果没找到任何章节，回退到普通文字渲染
+    if (found.length === 0) return null;
+
+    const parts = [];
+
+    // 章节前的文字（如果有）
+    if (found[0].pos > 0) {
+      const pre = text.slice(0, found[0].pos).trim();
+      if (pre) parts.push(`<div class="agent-message-text">${renderPlainText(pre)}</div>`);
+    }
+
+    // 逐章节渲染
+    for (let i = 0; i < found.length; i++) {
+      const { pos, def } = found[i];
+      const end = i + 1 < found.length ? found[i+1].pos : text.length;
+      // 章节内容：去掉第一行（标题行），取后面的内容
+      const sectionText = text.slice(pos, end).trim();
+      const lines = sectionText.split('\n');
+      const title = lines[0].trim();
+      const body = lines.slice(1).join('\n').trim();
+
+      const openClass = def.open ? ' open' : '';
+      parts.push(`
+        <div class="collapse-block">
+          <div class="collapse-header${openClass}" onclick="toggleCollapse(this)">
+            <span class="collapse-title">${escapeHTML(title)}</span>
+            <span class="collapse-arrow">▼</span>
+          </div>
+          <div class="collapse-body${openClass}">${renderPlainText(body)}</div>
+        </div>`);
+
+      // 提取信息到档案面板
+      if (def.extract) {
+        if (def.emoji === '📋') extractInfoFields(body);
+        if (def.emoji === '💡') extractTodos(body);
+      }
+    }
+
+    return parts.join('');
+  }
+
+  // 从📋章节提取字段到familyInfo
+  function extractInfoFields(text) {
+    function matchField(patterns) {
+      for (const re of patterns) {
+        const m = text.match(re);
+        if (m) {
+          const val = m[1].replace(/\*\*/g,'').replace(/（[^）]{0,20}）/g,'').replace(/\([^)]{0,20}\)/g,'').trim();
+          const skip = ['未提供','请补充','待确认','未知','请提供','如有','推测'];
+          if (val && val.length > 0 && val.length < 50 && !skip.some(s=>val.includes(s)) && !val.includes('[')) return val;
+        }
+      }
+      return null;
+    }
+    const surname  = matchField([/姓氏\s*[：:]\s*(.+?)(?:\n|$)/]);
+    const location = matchField([/祖籍地\s*[：:]\s*(.+?)(?:\n|$)/, /祖籍\s*[：:]\s*(.+?)(?:\n|$)/]);
+    const dialect  = matchField([/方言类型\s*[：:]\s*(.+?)(?:\n|$)/, /方言\s*[：:]\s*(.+?)(?:\n|$)/]);
+    const migrate  = matchField([/迁移时间\s*[：:]\s*(.+?)(?:\n|$)/]);
+    const kin      = matchField([/已知亲属\s*[：:]\s*(.+?)(?:\n|$)/]);
+    let updated = false;
+    if (surname)  { familyInfo['姓氏'] = surname;  updated = true; }
+    if (location) { familyInfo['祖籍'] = location; updated = true; }
+    if (dialect)  { familyInfo['方言'] = dialect;  updated = true; }
+    if (migrate)  { familyInfo['迁移'] = migrate;  updated = true; }
+    if (kin)      { familyInfo['亲属'] = kin;      updated = true; }
+    if (updated) updateInfoPanel();
+  }
+
+  // 从💡章节提取todos
+  function extractTodos(text) {
+    const todoRe = /^[1-9][\.、]\s*(.{5,50})$/gm;
+    let m, updated = false;
+    while ((m = todoRe.exec(text)) !== null) {
+      const t = m[1].replace(/\*\*/g,'').trim();
+      if (t.includes('[') || t.includes('【') || t.includes('请提供')) continue;
+      if (!todos.find(x => x.text === t)) { todos.push({text: t, done: false}); updated = true; }
+    }
+    if (updated) { updateTodoPanel(); updateBadge(); }
+  }
+
+  function extractAndUpdatePanel(text) {
+    // 兜底：如果没有emoji章节，还是尝试从全文提取
+    extractInfoFields(text);
+    extractTodos(text);
   }
 
   function updateInfoPanel() {
@@ -390,81 +437,11 @@
       todoPanel.innerHTML = `<div class="todo-list">${todos.map((t,i)=>`
         <div class="todo-item ${t.done?'done':''}" onclick="toggleTodo(${i})">
           <div class="todo-check">${t.done?'✓':''}</div>
-          <span class="todo-text">${t.text}</span>
+          <span class="todo-text">${escapeHTML(t.text)}</span>
         </div>`).join('')}</div>`;
     } else {
       todoPanel.innerHTML = `<div class="empty-panel">Agent会为你<br>生成可勾选的行动清单</div>`;
     }
-  }
-
-    function extractAndUpdatePanel(text, agentDiv) {
-    if (!text) return false;
-    const sections = extractSectionsFromText(text);
-    const infoSrc = sections.info_section || '';
-    // For todos, prefer an explicit todo section. If absent, only pick lines that look like actions.
-    let todoSrc = '';
-    if (sections.todo_section) {
-      todoSrc = sections.todo_section;
-    } else {
-      // scan body for action-like lines
-      const body = sections.body || '';
-      const lines = body.split('\n').map(l=>l.trim()).filter(Boolean);
-      const actionLines = lines.filter(l => {
-        if (/^[\-\u2022\*\•]\s*/.test(l)) return true;
-        if (/^\d+[\).、]/.test(l)) return true;
-        if (/^(联系|尝试|补充|查询|访问|发送|准备|查找|确认|查看|预约|安排)[^\n]{2,200}/.test(l)) return true;
-        if (/(联系|联络|致电|发邮件|发送邮件|访问|预约|查找)/.test(l) && l.length < 140) return true;
-        return false;
-      });
-      todoSrc = actionLines.join('\n');
-    }
-
-    const parsedInfo = parseInfoFromText(infoSrc);
-    const parsedTodos = parseTodosFromText(todoSrc);
-
-    let updated = false;
-
-    if (parsedInfo && Object.keys(parsedInfo).length) {
-      const info = parsedInfo;
-      if (info.surname) { familyInfo['姓氏'] = info.surname; updated = true; }
-      if (info.location) { familyInfo['祖籍'] = info.location; updated = true; }
-      if (info.dialect) { familyInfo['方言'] = info.dialect; updated = true; }
-      if (info.migration_info) { familyInfo['迁移'] = info.migration_info; updated = true; }
-    }
-
-    if (parsedTodos && parsedTodos.length) {
-      parsedTodos.forEach(t => {
-        // ensure todo is action-like (starts with verb or contains contact verb)
-        if (!/^(联系|尝试|补充|查询|访问|发送|准备|查找|确认|查看|预约|安排)/.test(t) && !/(联系|致电|发邮件|发送邮件|访问|预约|查找)/.test(t)) return;
-        if (!todos.find(x => x.text === t)) { todos.push({text: t, done: false}); updated = true; }
-      });
-    }
-
-    if (updated) {
-      updateInfoPanel(); updateTodoPanel(); updateBadge();
-    }
-
-    // Render full original text in bubble and append structured summary if we parsed anything
-    if (agentDiv) {
-      const escapedFull = escapeHTML(text).replace(/\n/g,'<br>');
-      let html = `<div class=\"agent-message-text\">${escapedFull}</div>`;
-      const hasStructured = (parsedInfo && Object.keys(parsedInfo).length) || (parsedTodos && parsedTodos.length);
-      if (hasStructured) {
-        const autoStructured = {};
-        if (parsedInfo && Object.keys(parsedInfo).length) autoStructured.user_info = parsedInfo;
-        if (parsedTodos && parsedTodos.length) autoStructured.todos = parsedTodos;
-        html += renderStructuredResponse(autoStructured);
-      }
-      agentDiv.querySelector('.bubble').innerHTML = html;
-      scrollDown();
-    } else if ((parsedInfo && Object.keys(parsedInfo).length) || (parsedTodos && parsedTodos.length)) {
-      const autoStructured = {};
-      if (parsedInfo && Object.keys(parsedInfo).length) autoStructured.user_info = parsedInfo;
-      if (parsedTodos && parsedTodos.length) autoStructured.todos = parsedTodos;
-      addMessage('agent', renderStructuredResponse(autoStructured), true);
-    }
-
-    return updated;
   }
 
   function toggleTodo(i) { todos[i].done=!todos[i].done; updateTodoPanel(); updateBadge(); }
@@ -506,24 +483,9 @@
       });
       if (!response.ok) throw new Error(`请求失败 (${response.status})`);
 
-      // If backend returns application/json (non-stream), handle as structured JSON fallback
-      const contentType = (response.headers.get('content-type') || '').toLowerCase();
-      if (contentType.includes('application/json')) {
-        const json = await response.json();
-        const structured = normalizeStructured(json);
-        hideTyping();
-        if (structured) {
-          addMessage('agent', renderStructuredResponse(structured), true);
-        } else {
-          addMessage('agent', '收到服务器 JSON 响应，但无法解析结构化内容。');
-        }
-        return;
-      }
-
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullText='', agentDiv=null, firstChunk=true;
-      let structuredData = null;
 
       while (true) {
         const {done, value} = await reader.read();
@@ -533,16 +495,10 @@
           if (line.startsWith('data:')) {
             try {
               const data = JSON.parse(line.slice(5).trim());
-              // If server sends a structured payload event, capture it for final rendering
-              if (data.type === 'structured' && data.content) {
-                structuredData = data.content;
-                continue;
-              }
               const newText = (data.type==='answer'&&data.content?.answer) ? data.content.answer : '';
               if (newText) {
                 if (firstChunk) { hideTyping(); firstChunk=false; }
                 fullText += newText;
-                // Show streaming text as plain while loading
                 if (!agentDiv) { agentDiv=addMessage('agent', fullText); }
                 else { agentDiv.querySelector('.bubble').innerHTML=renderPlainText(fullText); scrollDown(); }
               }
@@ -553,27 +509,25 @@
 
       hideTyping();
 
-      // If server sent a dedicated structured payload, render it (preferred)
-      if (structuredData) {
-        if (agentDiv) {
-          agentDiv.querySelector('.bubble').innerHTML = renderStructuredResponse(structuredData);
-          scrollDown();
-        } else {
-          addMessage('agent', renderStructuredResponse(structuredData), true);
-        }
-      } else if (!fullText) {
+      if (!fullText) {
         addMessage('agent','我收到了你的信息，正在整理中……');
       } else {
-      const parsed = tryParseJSON(fullText);
-      if (parsed && agentDiv) {
-        agentDiv.querySelector('.bubble').innerHTML = renderStructuredResponse(parsed);
-        scrollDown();
-      } else {
-        extractAndUpdatePanel(fullText);
+        const parsed = tryParseJSON(fullText);
+        if (parsed && agentDiv) {
+          agentDiv.querySelector('.bubble').innerHTML = renderStructuredResponse(parsed);
+          scrollDown();
+          extractAndUpdatePanel(fullText);
+        } else {
+          // 尝试按emoji章节渲染成折叠块
+          const sectioned = renderSections(fullText);
+          if (sectioned && agentDiv) {
+            agentDiv.querySelector('.bubble').innerHTML = sectioned;
+            scrollDown();
+          } else {
+            extractAndUpdatePanel(fullText);
+          }
+        }
       }
-      // 无论如何都尝试提取文字信息
-      extractAndUpdatePanel(fullText);
-    }
 
     } catch(err) {
       hideTyping();
