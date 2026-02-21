@@ -400,32 +400,31 @@
     function extractAndUpdatePanel(text) {
     let updated = false;
     
-    // 匹配所有 "任意字段名：内容" 的模式
     const fieldMap = {
       '姓氏': '姓氏',
       '祖籍地': '祖籍',
-      '祖籍': '祖籍', 
+      '祖籍': '祖籍',
       '方言类型': '方言',
       '方言': '方言',
       '迁移时间': '迁移',
       '已知亲属': '亲属',
       '可能的籍贯范围': '籍贯',
-      '置信度': '置信度',
     };
   
     Object.entries(fieldMap).forEach(([keyword, label]) => {
       const re = new RegExp(keyword + '[：:]\\s*(.+?)(?:\\n|$)');
       const m = text.match(re);
       if (m) {
-        const val = m[1].replace(/\*/g,'').trim();
-        if (val && val.length > 0 && val.length < 60) {
+        // 去掉括号内容和尾部标点
+        const val = m[1].replace(/（[^）]*）/g,'').replace(/\([^)]*\)/g,'').replace(/\*/g,'').trim();
+        if (val && val.length > 0 && val.length < 40
+            && !val.includes('未提供') && !val.includes('待确认') && !val.includes('未知') && !val.includes('推测')) {
           familyInfo[label] = val;
           updated = true;
         }
       }
     });
   
-    // 提取todos
     const todoRe = /^[1-9][\.、]\s*(.{5,50})$/gm;
     let m;
     while ((m = todoRe.exec(text)) !== null) {
