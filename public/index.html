@@ -63,7 +63,7 @@
   .avatar{width:30px;height:30px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif SC',serif;font-size:.75rem;flex-shrink:0;margin-top:2px;}
   .avatar.agent{background:var(--red);color:var(--paper);}
   .avatar.user{background:var(--ink);color:var(--paper);opacity:.7;}
-  .bubble{max-width:78%;padding:.85rem 1rem;line-height:1.8;font-size:.86rem;font-weight:300;}
+  .bubble{max-width:720px;padding:.85rem 1rem;line-height:1.8;font-size:.86rem;font-weight:300;}
   .message.agent .bubble{background:white;border:1px solid rgba(184,134,11,.15);border-radius:0 8px 8px 8px;box-shadow:0 2px 10px var(--shadow);}
   .message.user .bubble{background:var(--ink);color:var(--paper);border-radius:8px 0 8px 8px;opacity:.85;}
 
@@ -375,29 +375,25 @@
 
   // 从📋章节提取字段到familyInfo
   function extractInfoFields(text) {
-    function matchField(patterns) {
-      for (const re of patterns) {
-        const m = text.match(re);
-        if (m) {
-          const val = m[1].replace(/\*\*/g,'').replace(/（[^）]{0,20}）/g,'').replace(/\([^)]{0,20}\)/g,'').trim();
-          const skip = ['未提供','请补充','待确认','未知','请提供','如有','推测'];
-          if (val && val.length > 0 && val.length < 50 && !skip.some(s=>val.includes(s)) && !val.includes('[')) return val;
-        }
-      }
-      return null;
-    }
-    const surname  = matchField([/姓氏\s*[：:]\s*(.+?)(?:\n|$)/]);
-    const location = matchField([/祖籍地\s*[：:]\s*(.+?)(?:\n|$)/, /祖籍\s*[：:]\s*(.+?)(?:\n|$)/]);
-    const dialect  = matchField([/方言类型\s*[：:]\s*(.+?)(?:\n|$)/, /方言\s*[：:]\s*(.+?)(?:\n|$)/]);
-    const migrate  = matchField([/迁移时间\s*[：:]\s*(.+?)(?:\n|$)/]);
-    const kin      = matchField([/已知亲属\s*[：:]\s*(.+?)(?:\n|$)/]);
-    let updated = false;
-    if (surname)  { familyInfo['姓氏'] = surname;  updated = true; }
-    if (location) { familyInfo['祖籍'] = location; updated = true; }
-    if (dialect)  { familyInfo['方言'] = dialect;  updated = true; }
-    if (migrate)  { familyInfo['迁移'] = migrate;  updated = true; }
-    if (kin)      { familyInfo['亲属'] = kin;      updated = true; }
-    if (updated) updateInfoPanel();
+    // surname
+    let m = text.match(/(?:姓氏|姓)\s*[:：]?\s*([\u4e00-\u9fa5A-Za-z\-]+)/);
+    if (m) familyInfo['姓氏'] = m[1].trim();
+    // location
+    m = text.match(/(?:祖籍地|祖籍|籍贯|来自)\s*[:：]?\s*([^\n，。,\[【]+)/);
+    if (m) { const v = m[1].replace(/（[^）]*）/g,'').trim(); if (v && !['未知','待补充','请提供'].some(s=>v.includes(s))) familyInfo['祖籍'] = v; }
+    // dialect
+    m = text.match(/(?:方言类型|方言|语种)\s*[:：]?\s*([^\n，。,\[【]+)/);
+    if (m) { const v = m[1].replace(/（[^）]*）/g,'').trim(); if (v && !['未知','待补充','请提供'].some(s=>v.includes(s))) familyInfo['方言'] = v; }
+    // migration
+    m = text.match(/(?:迁移时间|迁移)\s*[:：]?\s*([^\n，。,\[【]+)/);
+    if (m) { const v = m[1].replace(/（[^）]*）/g,'').trim(); if (v && !['未知','待补充','请提供'].some(s=>v.includes(s))) familyInfo['迁移'] = v; }
+    // kin
+    m = text.match(/(?:已知亲属)\s*[:：]?\s*([^\n\[【]+)/);
+    if (m) { const v = m[1].replace(/（[^）]*）/g,'').trim(); if (v && !['未知','待补充','请提供'].some(s=>v.includes(s))) familyInfo['亲属'] = v; }
+    // clue
+    m = text.match(/(?:其他线索)\s*[:：]?\s*([^\n\[【]+)/);
+    if (m) { const v = m[1].trim(); if (v && v.length > 1) familyInfo['线索'] = v; }
+    updateInfoPanel();
   }
 
   // 从💡章节提取todos
