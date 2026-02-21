@@ -63,7 +63,7 @@
   .avatar{width:30px;height:30px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif SC',serif;font-size:.75rem;flex-shrink:0;margin-top:2px;}
   .avatar.agent{background:var(--red);color:var(--paper);}
   .avatar.user{background:var(--ink);color:var(--paper);opacity:.7;}
-  .bubble{max-width:520px;padding:.85rem 1rem;line-height:1.8;font-size:.86rem;font-weight:300;}
+  .bubble{max-width:560px;width:100%;padding:.85rem 1rem;line-height:1.8;font-size:.86rem;font-weight:300;}
   .message.agent .bubble{background:white;border:1px solid rgba(184,134,11,.15);border-radius:0 8px 8px 8px;box-shadow:0 2px 10px var(--shadow);}
   .message.user .bubble{background:var(--ink);color:var(--paper);border-radius:8px 0 8px 8px;opacity:.85;}
 
@@ -303,104 +303,59 @@
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
-  // 把Agent回复按emoji章节切割，渲染成折叠块
-  function renderSections(text) {
-    // 定义章节emoji及其配置：[标题, 默认展开, 是否提取到档案]
-    const sectionDefs = [
-      { emoji: '📋', label: '已收集信息', open: false, extract: true },
-      { emoji: '🎯', label: '亲缘地分析', open: true,  extract: false },
-      { emoji: '👥', label: '推荐向导',   open: true,  extract: false },
-      { emoji: '💡', label: '下一步建议', open: true,  extract: true  },
-      { emoji: '💬', label: '向导寄语',   open: true,  extract: false },
-      { emoji: '💌', label: '情感陪伴',   open: true,  extract: false },
-      { emoji: '📊', label: '进展记录',   open: false, extract: false },
-    ];
-
-    // 找出文字里出现的所有章节起始位置
-    const found = [];
-    for (const def of sectionDefs) {
-      let idx = 0;
-      while (true) {
-        const pos = text.indexOf(def.emoji, idx);
-        if (pos === -1) break;
-        // 确认是行首（pos==0或前面是换行）
-        if (pos === 0 || text[pos-1] === '\n') {
-          found.push({ pos, def });
-        }
-        idx = pos + 1;
-      }
-    }
-    found.sort((a,b) => a.pos - b.pos);
-
-    // 如果没找到任何章节，回退到普通文字渲染
-    if (found.length === 0) return null;
-
-    const parts = [];
-
-    // 章节前的文字（如果有）
-    if (found[0].pos > 0) {
-      const pre = text.slice(0, found[0].pos).trim();
-      if (pre) parts.push(`<div class="agent-message-text">${renderPlainText(pre)}</div>`);
-    }
-
-    // 逐章节渲染
-    for (let i = 0; i < found.length; i++) {
-      const { pos, def } = found[i];
-      const end = i + 1 < found.length ? found[i+1].pos : text.length;
-      // 章节内容：去掉第一行（标题行），取后面的内容
-      const sectionText = text.slice(pos, end).trim();
-      const lines = sectionText.split('\n');
-      const title = lines[0].trim();
-      const body = lines.slice(1).join('\n').trim();
-
-      const openClass = def.open ? ' open' : '';
-      parts.push(`
-        <div class="collapse-block">
-          <div class="collapse-header${openClass}" onclick="toggleCollapse(this)">
-            <span class="collapse-title">${escapeHTML(title)}</span>
-            <span class="collapse-arrow">▼</span>
-          </div>
-          <div class="collapse-body${openClass}">${renderPlainText(body)}</div>
-        </div>`);
-
-      // 提取信息到档案面板
-      if (def.extract) {
-        if (def.emoji === '📋') extractInfoFields(body);
-        if (def.emoji === '💡') extractTodos(body);
-      }
-    }
-
-    return parts.join('');
-  }
-
-  // 从📋章节提取字段到familyInfo
- function extractInfoFields(text) {
-    familyInfo._raw = text;
-    updateInfoPanel();
-  }
-  
-  // 从💡章节提取todos
-  function extractTodos(text) {
-    const todoRe = /^[1-9][\.、]\s*(.{5,50})$/gm;
-    let m, updated = false;
-    while ((m = todoRe.exec(text)) !== null) {
-      const t = m[1].replace(/\*\*/g,'').trim();
-      if (t.includes('[') || t.includes('【') || t.includes('请提供')) continue;
-      if (!todos.find(x => x.text === t)) { todos.push({text: t, done: false}); updated = true; }
-    }
-    if (updated) { updateTodoPanel(); updateBadge(); }
-  }
-
+  // 从全文中找到📋段落搬到家族信息面板，找到💡段落提取todos
   function extractAndUpdatePanel(text) {
-    // 兜底：如果没有emoji章节，还是尝试从全文提取
-    extractInfoFields(text);
-    extractTodos(text);
+    if (!text) return;
+    const allEmojis = ['📋','🎯','👥','💡','💬','💌','📊'];
+
+    function getSection(emoji) {
+      let pos = -1;
+      for (let i = 0; i < text.length; i++) {
+        if (text.startsWith(emoji, i) && (i === 0 || text[i-1] === '\n')) {
+          pos = i; break;
+        }
+      }
+      if (pos === -1) return null;
+      let end = text.length;
+      for (let i = pos + 1; i < text.length; i++) {
+        if (text[i-1] === '\n' && allEmojis.some(e => text.startsWith(e, i))) {
+          end = i; break;
+        }
+      }
+      const section = text.slice(pos, end).trim();
+      const newline = section.indexOf('\n');
+      return newline === -1 ? '' : section.slice(newline + 1).trim();
+    }
+
+    // 📋 → 家族信息面板直接搬运
+    const infoBody = getSection('📋');
+    if (infoBody) {
+      familyInfo._raw = infoBody;
+      updateInfoPanel();
+    }
+
+    // 💡 → todos逐条提取
+    const todoBody = getSection('💡');
+    if (todoBody) {
+      const todoRe = /^[1-9][.、]\s*(.{5,60})/gm;
+      let m, updated = false;
+      while ((m = todoRe.exec(todoBody)) !== null) {
+        const t = m[1].replace(/\*\*/g,'').trim();
+        if (t.includes('[') || t.includes('【') || t.includes('请提供')) continue;
+        if (!todos.find(x => x.text === t)) { todos.push({text: t, done: false}); updated = true; }
+      }
+      if (updated) { updateTodoPanel(); updateBadge(); }
+    }
   }
 
   function updateInfoPanel() {
     const infoPanel = document.getElementById('infoPanel');
-    if (familyInfo._raw) {
-      infoPanel.innerHTML = `<div style="font-size:.78rem;line-height:1.9;">${renderPlainText(familyInfo._raw)}</div>`;
+    if (Object.keys(familyInfo).length > 0) {
+      infoPanel.innerHTML = Object.entries(familyInfo).map(([k,v])=>`
+        <div class="info-row">
+          <span class="info-label">${escapeHTML(k)}</span>
+          <span>${escapeHTML(v)}</span>
+        </div>`).join('');
     } else {
       infoPanel.innerHTML = `<div class="empty-panel">开始对话后，<br>信息会自动整理在这里</div>`;
     }
@@ -493,14 +448,7 @@
           scrollDown();
           extractAndUpdatePanel(fullText);
         } else {
-          // 尝试按emoji章节渲染成折叠块
-          const sectioned = renderSections(fullText);
-          if (sectioned && agentDiv) {
-            agentDiv.querySelector('.bubble').innerHTML = sectioned;
-            scrollDown();
-          } else {
-            extractAndUpdatePanel(fullText);
-          }
+          extractAndUpdatePanel(fullText);
         }
       }
 
