@@ -399,26 +399,34 @@
 
     function extractAndUpdatePanel(text) {
     let updated = false;
-    const fields = {
-      '姓氏': /姓氏[：:]\s*([^\n，,（(【\[]{1,20})/,
-      '祖籍': /祖籍地?[：:]\s*([^\n，,（(【\[]{1,30})/,
-      '方言': /方言类型?[：:]\s*([^\n，,（(【\[]{1,20})/,
-      '迁移': /迁移时间[：:]\s*([^\n，,（(【\[]{1,30})/,
-      '亲属': /已知亲属[：:]\s*([^\n，,（(【\[]{1,30})/,
+    
+    // 匹配所有 "任意字段名：内容" 的模式
+    const fieldMap = {
+      '姓氏': '姓氏',
+      '祖籍地': '祖籍',
+      '祖籍': '祖籍', 
+      '方言类型': '方言',
+      '方言': '方言',
+      '迁移时间': '迁移',
+      '已知亲属': '亲属',
+      '可能的籍贯范围': '籍贯',
+      '置信度': '置信度',
     };
-    Object.entries(fields).forEach(([key, re]) => {
+  
+    Object.entries(fieldMap).forEach(([keyword, label]) => {
+      const re = new RegExp(keyword + '[：:]\\s*(.+?)(?:\\n|$)');
       const m = text.match(re);
       if (m) {
         const val = m[1].replace(/\*/g,'').trim();
-        if (val && !val.includes('未提供') && !val.includes('请补充') && !val.includes('[')) {
-          familyInfo[key] = val;
+        if (val && val.length > 0 && val.length < 60) {
+          familyInfo[label] = val;
           updated = true;
         }
       }
     });
   
-    // 提取todos：匹配 1. 2. 3. 开头的行
-    const todoRe = /^[1-9][\.、]\s*(.{5,40})$/gm;
+    // 提取todos
+    const todoRe = /^[1-9][\.、]\s*(.{5,50})$/gm;
     let m;
     while ((m = todoRe.exec(text)) !== null) {
       const t = m[1].replace(/\*\*/g,'').trim();
