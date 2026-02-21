@@ -545,9 +545,10 @@
         agentDiv.querySelector('.bubble').innerHTML = renderStructuredResponse(parsed);
         scrollDown();
       } else {
-        // 正则从普通文字提取结构化信息填入档案面板
         extractAndUpdatePanel(fullText);
       }
+      // 无论如何都尝试提取文字信息
+      extractAndUpdatePanel(fullText);
     }
 
     } catch(err) {
