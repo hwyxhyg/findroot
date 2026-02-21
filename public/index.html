@@ -371,6 +371,87 @@
     return data;
   }
 
+  // --- Text extraction helpers (regex-based fallback) ---
+  function extractSectionsFromText(text) {
+    if (!text || typeof text !== 'string') return {};
+    const normalized = text.replace(/\r/g, '');
+    const lines = normalized.split('\n').map(l=>l.trim());
+    const sections = {};
+    let current = 'body';
+    sections[current] = [];
+
+    const headingPatterns = [/^\s*(已收集的家族信息|已收集信息|已收集信息：)\s*[:：]?/i, /^\s*(下一步行动|下一步|行动清单|待办|TODO|Todos)\s*[:：]?/i];
+
+    for (const line of lines) {
+      if (!line) { sections[current].push(''); continue; }
+      let matched = false;
+      for (const pat of headingPatterns) {
+        if (pat.test(line)) {
+          const key = pat === headingPatterns[0] ? 'info_section' : 'todo_section';
+          current = key;
+          sections[current] = sections[current] || [];
+          // if heading line contains extra content after colon, keep it
+          const after = line.replace(pat, '').trim();
+          if (after) sections[current].push(after);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) sections[current].push(line);
+    }
+
+    // Join sections
+    return Object.fromEntries(Object.entries(sections).map(([k,v])=>[k, v.join('\n').trim()]));
+  }
+
+  function parseInfoFromText(text) {
+    if (!text) return {};
+    const out = {};
+    // surname
+    let m = text.match(/(?:姓氏|姓)\s*[:：]?\s*([\u4e00-\u9fa5A-Za-z\-]+)/);
+    if (m) out.surname = m[1].trim();
+    // location / 祖籍
+    m = text.match(/(?:祖籍|籍贯|来自)\s*[:：]?\s*([^\n，。,]+)/);
+    if (m) out.location = m[1].trim();
+    // dialect / 方言
+    m = text.match(/(?:方言|语种)\s*[:：]?\s*([^\n，。,]+)/);
+    if (m) out.dialect = m[1].trim();
+    // migration info (look for years + 迁|下南洋|移民)
+    m = text.match(/(\d{3,4}年[\s\S]{0,40}?(下南洋|迁|移民|前往|前往))/);
+    if (!m) m = text.match(/(下南洋|迁往|移民)[^\n，。]*/);
+    if (m) out.migration_info = m[0].trim();
+
+    return out;
+  }
+
+  function parseTodosFromText(text) {
+    if (!text) return [];
+    const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+    const todos = new Set();
+    // bullets or numbered
+    for (const line of lines) {
+      // skip lines that look like descriptive surname paragraphs
+      if (/^\p{Script=Han}*姓.*(分布|主要|是|常见)/u.test(line)) continue;
+      // bullet or number
+      let m = line.match(/^[\-\u2022\*\•]\s*(.+)/);
+      if (m) { todos.add(m[1].trim()); continue; }
+      m = line.match(/^\d+[\).]\s*(.+)/);
+      if (m) { todos.add(m[1].trim()); continue; }
+      // action verbs lines (start with common verbs)
+      if (/^(联系|尝试|补充|查询|访问|发送|准备|查找|确认|查看|预约|安排)[^\n]{3,200}/.test(line)) {
+        todos.add(line);
+        continue;
+      }
+      // short imperative sentences containing contact verbs
+      if (/(联系|联络|致电|发邮件|发送邮件|访问|预约|查找)/.test(line) && line.length < 140) {
+        todos.add(line);
+        continue;
+      }
+    }
+    return Array.from(todos).map(s=>s.replace(/^\d+[\).]\s*/, '').trim());
+  }
+
+
   function updateInfoPanel() {
     const infoPanel = document.getElementById('infoPanel');
     if (Object.keys(familyInfo).length > 0) {
@@ -397,49 +478,47 @@
     }
   }
 
-    function extractAndUpdatePanel(text) {
+  function extractAndUpdatePanel(text, agentDiv) {
+    if (!text) return false;
+    const sections = extractSectionsFromText(text);
+    const infoSrc = sections.info_section || sections.body || '';
+    const todoSrc = sections.todo_section || sections.body || '';
+
+    const parsedInfo = parseInfoFromText(infoSrc);
+    const parsedTodos = parseTodosFromText(todoSrc);
+
     let updated = false;
-    
-    const fieldMap = {
-      '姓氏': '姓氏',
-      '祖籍地': '祖籍',
-      '祖籍': '祖籍',
-      '方言类型': '方言',
-      '方言': '方言',
-      '迁移时间': '迁移',
-      '已知亲属': '亲属',
-      '可能的籍贯范围': '籍贯',
-    };
-  
-    Object.entries(fieldMap).forEach(([keyword, label]) => {
-      const re = new RegExp(keyword + '[：:]\\s*(.+?)(?:\\n|$)');
-      const m = text.match(re);
-      if (m) {
-        // 去掉括号内容和尾部标点
-        const val = m[1].replace(/（[^）]*）/g,'').replace(/\([^)]*\)/g,'').replace(/\*/g,'').trim();
-        if (val && val.length > 0 && val.length < 40
-            && !val.includes('未提供') && !val.includes('待确认') && !val.includes('未知') && !val.includes('推测')) {
-          familyInfo[label] = val;
-          updated = true;
-        }
-      }
-    });
-  
-    const todoRe = /^[1-9][\.、]\s*(.{5,50})$/gm;
-    let m;
-    while ((m = todoRe.exec(text)) !== null) {
-      const t = m[1].replace(/\*\*/g,'').trim();
-      if (!todos.find(x => x.text === t)) {
-        todos.push({text: t, done: false});
-        updated = true;
-      }
+
+    if (parsedInfo && Object.keys(parsedInfo).length) {
+      const info = parsedInfo;
+      if (info.surname) { familyInfo['姓氏'] = info.surname; updated = true; }
+      if (info.location) { familyInfo['祖籍'] = info.location; updated = true; }
+      if (info.dialect) { familyInfo['方言'] = info.dialect; updated = true; }
+      if (info.migration_info) { familyInfo['迁移'] = info.migration_info; updated = true; }
     }
-  
+
+    if (parsedTodos && parsedTodos.length) {
+      parsedTodos.forEach(t => {
+        if (!todos.find(x => x.text === t)) { todos.push({text: t, done: false}); updated = true; }
+      });
+    }
+
     if (updated) {
-      updateInfoPanel();
-      updateTodoPanel();
-      updateBadge();
+      updateInfoPanel(); updateTodoPanel(); updateBadge();
     }
+
+    // If we found either info or todos, render a structured-like bubble so user sees summary
+    if ((parsedInfo && Object.keys(parsedInfo).length) || (parsedTodos && parsedTodos.length)) {
+      const autoStructured = {};
+      if (parsedInfo && Object.keys(parsedInfo).length) autoStructured.user_info = parsedInfo;
+      if (parsedTodos && parsedTodos.length) autoStructured.todos = parsedTodos;
+      autoStructured.message = text.trim().slice(0, 100) + (text.trim().length > 100 ? '...' : '');
+
+      if (agentDiv) agentDiv.querySelector('.bubble').innerHTML = renderStructuredResponse(autoStructured);
+      else addMessage('agent', renderStructuredResponse(autoStructured), true);
+    }
+
+    return updated;
   }
 
   function toggleTodo(i) { todos[i].done=!todos[i].done; updateTodoPanel(); updateBadge(); }
@@ -544,10 +623,15 @@
         agentDiv.querySelector('.bubble').innerHTML = renderStructuredResponse(parsed);
         scrollDown();
       } else {
-        extractAndUpdatePanel(fullText);
+        // Try the regex-based extraction and update panels; if it produced content, we already updated bubble there
+        const ok = extractAndUpdatePanel(fullText, agentDiv);
+        if (!ok) {
+          // keep plain text displayed
+          if (agentDiv) { agentDiv.querySelector('.bubble').innerHTML = renderPlainText(fullText); scrollDown(); }
+        } else {
+          scrollDown();
+        }
       }
-      // 无论如何都尝试提取文字信息
-      extractAndUpdatePanel(fullText);
     }
 
     } catch(err) {
