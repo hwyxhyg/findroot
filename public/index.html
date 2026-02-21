@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>寻根 · 归处</title>
+<title>RootLink-打通全球华人的寻根连接网络 </title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
 <style>
   :root{--ink:#1a1208;--paper:#f5efe3;--warm:#c8956c;--gold:#b8860b;--red:#8b2020;--shadow:rgba(26,18,8,0.12);}
@@ -129,7 +129,7 @@
 <body>
 <header>
   <div class="logo">寻根</div>
-  <div class="logo-sub">归处 · 海外华人寻根向导</div>
+  <div class="logo-sub">RootLink · 打通全球华人的寻根连接网络</div>
   <div class="header-right">
     <button class="panel-toggle" onclick="togglePanel()" id="panelBtn">
       📋 寻根档案 <span class="badge" id="todoBadge"></span>
@@ -141,9 +141,9 @@
 <div class="app-body">
   <div class="chat-area">
     <div class="welcome" id="welcome">
-      <div class="welcome-character">根</div>
-      <h1>树有根，人不能忘本</h1>
-      <p>告诉我你所知道的一切——哪怕只是一个模糊的地名，或是老人留下的只言片语。</p>
+      <div class="welcome-character" id="welcomeChar"></div>
+      <h1 id="welcomePoem"></h1>
+      <p>告诉我你正在寻找的故乡——哪怕只是一个模糊的地名，或是老人留下的只言片语。</p>
       <div class="welcome-prompts">
         <div class="prompt-chip" onclick="usePrompt(this)">我是马来西亚华人，只知道祖籍是福建，想找到更具体的地方</div>
         <div class="prompt-chip" onclick="usePrompt(this)">爷爷说我们是广东人，家里说客家话，想帮他完成回乡的心愿</div>
@@ -158,7 +158,7 @@
     <div class="input-area">
       <div class="error-msg" id="error"></div>
       <div class="input-wrap">
-        <textarea id="input" placeholder="告诉我你知道的关于家族的任何信息……" rows="1"
+        <textarea id="input" placeholder="告诉我你知道的关于故乡的任何信息……" rows="1"
           onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
         <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
       </div>
@@ -185,6 +185,18 @@
 </div>
 
 <script>
+  const poems = [
+    { char: '故乡', text: '少小离家老大回，乡音无改鬓毛催' },
+    { char: '根', text: '树高千尺，叶落归根' },
+    { char: '乡', text: '举头望明月，低头思故乡' },
+    { char: '归', text: '露从今夜白，月是故乡明' },
+    { char: '本', text: '慎终追远，民德归厚矣' },
+    { char: '寻', text: '问君何处是家乡，万里烟波一雁行' },
+  ];
+  const p = poems[Math.floor(Math.random() * poems.length)];
+  document.getElementById('welcomeChar').textContent = p.char;
+  document.getElementById('welcomePoem').textContent = p.text;
+  
   const API_URL = '/api/chat';
   let sessionId = 'sess_' + Math.random().toString(36).substr(2,16);
   let isLoading = false, conversationStarted = false, panelOpen = false;
