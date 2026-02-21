@@ -350,12 +350,24 @@
 
   function updateInfoPanel() {
     const infoPanel = document.getElementById('infoPanel');
-    if (Object.keys(familyInfo).length > 0) {
-      infoPanel.innerHTML = Object.entries(familyInfo).map(([k,v])=>`
-        <div class="info-row">
-          <span class="info-label">${escapeHTML(k)}</span>
-          <span>${escapeHTML(v)}</span>
-        </div>`).join('');
+    if (familyInfo._raw) {
+      const lines = familyInfo._raw.split('\n').map(l => l.trim()).filter(l => l && l !== '---');
+      const html = lines.map(line => {
+        // **字段**：值 → 标签+值格式
+        const fieldMatch = line.match(/^\*\*(.+?)\*\*[：:]\s*(.*)/);
+        if (fieldMatch) {
+          const label = fieldMatch[1];
+          const val = fieldMatch[2];
+          return `<div class="info-row"><span class="info-label">${escapeHTML(label)}</span><span>${escapeHTML(val)}</span></div>`;
+        }
+        // - 开头 → 缩进小字
+        if (line.startsWith('- ')) {
+          return `<div style="padding-left:.8rem;color:rgba(26,18,8,.6);font-size:.73rem;line-height:1.7;">· ${escapeHTML(line.slice(2))}</div>`;
+        }
+        // 普通行
+        return `<div style="font-size:.78rem;line-height:1.8;">${escapeHTML(line)}</div>`;
+      }).join('');
+      infoPanel.innerHTML = `<div style="font-size:.78rem;line-height:1.9;">${html}</div>`;
     } else {
       infoPanel.innerHTML = `<div class="empty-panel">开始对话后，<br>信息会自动整理在这里</div>`;
     }
