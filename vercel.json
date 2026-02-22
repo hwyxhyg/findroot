@@ -6,6 +6,7 @@
   ],
   "routes": [
     { "src": "/api/chat", "dest": "/api/chat.js" },
+    { "src": "/logo_gold.png", "dest": "/public/logo_gold.png" },
     { "src": "/(.*)", "dest": "/public/index.html" }
   ]
 }
