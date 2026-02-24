@@ -354,7 +354,9 @@
       const todoRe = /^[1-9][.、]\s*(.{5,60})/gm;
       let m, updated = false;
       while ((m = todoRe.exec(todoBody)) !== null) {
-        const t = m[1].replace(/\*\*/g,'').trim();
+        let t = m[1].replace(/\*\*/g,'').trim();
+        // 去掉结尾的冒号/全角冒号/多余标点和空格
+        t = t.replace(/[：:]\s*$/g, '').trim();
         if (t.includes('[') || t.includes('【') || t.includes('请提供')) continue;
         if (!todos.find(x => x.text === t)) { todos.push({text: t, done: false}); updated = true; }
       }
