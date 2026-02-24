@@ -492,6 +492,32 @@
       input.focus();
     }
   }
+      // ====== Prefill + Auto send from URL (?q=...) ======
+    (function prefillAndSendFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get("q");
+      if (!q) return;
+    
+      // 1) 防止刷新/回退重复自动发送：sessionStorage 记一次
+      const key = "rootlink_prefill_sent_" + q;
+      if (sessionStorage.getItem(key)) return;
+    
+      const input = document.getElementById("input");
+      if (!input) return;
+    
+      input.value = q;
+      autoResize(input);
+      input.focus();
+    
+      // 2) 等页面稳定后再发，且避免 isLoading 冲突
+      setTimeout(() => {
+        if (isLoading) return; // 保险：如果正在请求中就别自动发
+        sessionStorage.setItem(key, "1");
+        sendMessage();
+        // 3) 清理 URL：避免用户复制链接再触发
+        history.replaceState({}, "", window.location.pathname);
+      }, 120);
+    })();
 </script>
 </body>
 </html>
