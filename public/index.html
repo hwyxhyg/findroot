@@ -125,51 +125,53 @@
   .header-right { gap: .6rem; }
   .header-right .panel-toggle { padding: .35rem .75rem; font-size: .74rem; }
   .icon-actions{display:flex;align-items:center;gap:.35rem;}
-  .icon-btn{
-    width:30px;height:30px;
+  .icon-ghost{
+    width:28px;height:28px;
     display:inline-flex;align-items:center;justify-content:center;
     background:transparent;
-    border:1px solid rgba(184,134,11,.18);
-    border-radius:6px;
+    border:none;
+    border-radius:8px;
     cursor:pointer;
-    color:rgba(26,18,8,.65);
-    transition:all .15s ease;
-    font-size:.92rem;
+    color:rgba(26,18,8,.45);
+    font-size:1rem;
     padding:0;
+    transition:background .15s ease, color .15s ease, transform .05s ease;
   }
-  .icon-btn:hover{
-    background:rgba(200,149,108,.10);
-    border-color:rgba(184,134,11,.30);
-    color:var(--ink);
+  .icon-ghost:hover{
+    background:rgba(200,149,108,.12);
+    color:rgba(26,18,8,.75);
   }
-  .icon-btn:active{transform:translateY(1px);}
-  .icon-btn.danger:hover{
-    background:rgba(139,32,32,.08);
-    border-color:rgba(139,32,32,.25);
-    color:var(--red);
+  .icon-ghost:active{ transform:translateY(1px); }
+  .panel-tools{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:.6rem;
+    padding:.6rem .65rem;
+    background:rgba(255,255,255,.55);
+    border:1px solid rgba(184,134,11,.15);
+    border-radius:8px;
   }
   
-  /* tooltip（纯 CSS） */
-  .icon-btn[data-tip]{position:relative;}
-  .icon-btn[data-tip]::after{
-    content:attr(data-tip);
-    position:absolute;
-    top:calc(100% + 8px);
-    right:0;
-    background:rgba(26,18,8,.88);
-    color:var(--paper);
-    font-size:.70rem;
-    padding:.25rem .45rem;
-    border-radius:6px;
-    white-space:nowrap;
-    opacity:0;
-    transform:translateY(-4px);
-    pointer-events:none;
-    transition:all .15s ease;
+  .panel-tools-left{
+    font-family:'Noto Serif SC',serif;
+    font-size:.78rem;
+    color:rgba(139,32,32,.85);
+    letter-spacing:.04em;
+    user-select:none;
   }
-  .icon-btn[data-tip]:hover::after{
-    opacity:1;
-    transform:translateY(0);
+  
+  .panel-tools-actions{
+    display:flex;
+    align-items:center;
+    gap:.35rem;
+  }
+  
+  .panel-tools .icon-btn{
+    width:28px;
+    height:28px;
+    border-radius:7px;
+    font-size:.9rem;
   }
   @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
   .messages::-webkit-scrollbar,.side-panel-inner::-webkit-scrollbar{display:none;}
@@ -181,18 +183,13 @@
   <img src="logo_gold.png" alt="RootLink" style="height:38px;object-fit:contain;">
   <div class="logo-sub">RootLink · 打通全球华人的寻根连接网络</div>
  <div class="header-right">
-  <button class="panel-toggle" onclick="togglePanel()" id="panelBtn">
-    📋 寻根档案 <span class="badge" id="todoBadge"></span>
-  </button>
   <div class="icon-actions">
-    <button class="icon-btn" onclick="exportArchive()" id="exportBtn" aria-label="导出寻根档案" data-tip="导出寻根档案">📤</button>
-    <button class="icon-btn" onclick="triggerImport()" id="importBtn" aria-label="导入寻根档案" data-tip="导入寻根档案">📥</button>
-    <button class="icon-btn danger" onclick="resetConversation()" id="resetBtn" aria-label="重新开始" data-tip="重新开始">↻</button>
+    <button class="icon-ghost" onclick="resetConversation()" id="resetBtn" aria-label="重新开始" title="重新开始">↻</button>
     <input type="file" id="importFile" accept="application/json" style="display:none" />
   </div>
-
-  <!-- 隐藏的文件选择器 -->
-  <input type="file" id="importFile" accept="application/json" style="display:none" />
+   <button class="panel-toggle" onclick="togglePanel()" id="panelBtn">
+    📋 寻根档案 <span class="badge" id="todoBadge"></span>
+  </button>
 
   <div class="status-dot"><span class="dot"></span>向导在线</div>
 </div>
@@ -228,6 +225,16 @@
 
   <div class="side-panel" id="sidePanel">
     <div class="side-panel-inner">
+
+        <!-- ✅ 新增：档案工具条（放最上方） -->
+      <div class="panel-tools">
+        <div class="panel-tools-left">档案工具</div>
+        <div class="panel-tools-actions">
+          <button class="icon-btn" onclick="exportArchive()" aria-label="导出寻根档案" title="导出">📤</button>
+          <button class="icon-btn" onclick="triggerImport()" aria-label="导入寻根档案" title="导入">📥</button>
+        </div>
+      </div>
+      
       <div class="panel-section">
         <div class="panel-section-header">📋 已收集的家族信息</div>
         <div class="panel-section-body" id="infoPanel">
