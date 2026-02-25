@@ -122,6 +122,8 @@
   .hint{text-align:center;font-size:.68rem;color:rgba(26,18,8,.25);margin-top:.4rem;}
   .error-msg{background:rgba(139,32,32,.06);border:1px solid rgba(139,32,32,.2);border-radius:4px;padding:.5rem .9rem;font-size:.78rem;color:var(--red);text-align:center;display:none;margin-bottom:.4rem;}
   .error-msg.visible{display:block;}
+  .header-right { gap: .6rem; }
+  .header-right .panel-toggle { padding: .35rem .75rem; font-size: .74rem; }
   @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
   .messages::-webkit-scrollbar,.side-panel-inner::-webkit-scrollbar{display:none;}
   .messages,.side-panel-inner{-ms-overflow-style:none;scrollbar-width:none;}
@@ -131,12 +133,29 @@
 <header>
   <img src="logo_gold.png" alt="RootLink" style="height:38px;object-fit:contain;">
   <div class="logo-sub">RootLink · 打通全球华人的寻根连接网络</div>
-  <div class="header-right">
-    <button class="panel-toggle" onclick="togglePanel()" id="panelBtn">
-      📋 寻根档案 <span class="badge" id="todoBadge"></span>
-    </button>
-    <div class="status-dot"><span class="dot"></span>向导在线</div>
-  </div>
+ <div class="header-right">
+  <button class="panel-toggle" onclick="togglePanel()" id="panelBtn">
+    📋 寻根档案 <span class="badge" id="todoBadge"></span>
+  </button>
+
+  <!-- 新增：档案操作按钮 -->
+  <button class="panel-toggle" onclick="exportArchive()" id="exportBtn" title="导出已整理的寻根档案">
+    📤 导出档案
+  </button>
+
+  <button class="panel-toggle" onclick="triggerImport()" id="importBtn" title="从文件导入寻根档案">
+    📥 导入档案
+  </button>
+
+  <button class="panel-toggle" onclick="resetConversation()" id="resetBtn" title="清空并重新开始对话">
+    🔄 重新开始
+  </button>
+
+  <!-- 隐藏的文件选择器 -->
+  <input type="file" id="importFile" accept="application/json" style="display:none" />
+
+  <div class="status-dot"><span class="dot"></span>向导在线</div>
+</div>
 </header>
 
 <div class="app-body">
@@ -520,6 +539,141 @@
         history.replaceState({}, "", window.location.pathname);
       }, 120);
     })();
+
+  function getArchivePayload() {
+  return {
+    version: 1,
+    exported_at: new Date().toISOString(),
+    session_id: sessionId,
+    familyInfo: familyInfo || {},
+    todos: (todos || []).map(t => ({ text: t.text, done: !!t.done })),
+    // 可选：把已展示的对话也存下来（更完整）
+    conversation: Array.from(document.querySelectorAll('#messages .message')).map(node => {
+      const role = node.classList.contains('user') ? 'user' : 'agent';
+      const bubble = node.querySelector('.bubble');
+      return { role, html: bubble ? bubble.innerHTML : '' };
+    })
+  };
+}
+
+function exportArchive() {
+  const hasInfo = (familyInfo && (familyInfo._raw || Object.keys(familyInfo).length > 0));
+  const hasTodos = (todos && todos.length > 0);
+  const hasConversation = document.querySelectorAll('#messages .message').length > 0;
+
+  if (!hasInfo && !hasTodos && !hasConversation) {
+    showError('当前没有可导出的内容（请先开始对话）');
+    return;
+  }
+
+  const payload = getArchivePayload();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  const ts = new Date();
+  const filename = `RootLink_寻根档案_${ts.getFullYear()}-${String(ts.getMonth()+1).padStart(2,'0')}-${String(ts.getDate()).padStart(2,'0')}.json`;
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function triggerImport() {
+  const fileInput = document.getElementById('importFile');
+  if (!fileInput) return;
+  fileInput.value = ''; // 允许重复导入同一个文件
+  fileInput.click();
+}
+
+document.getElementById('importFile')?.addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+
+      // 基本校验
+      if (!data || typeof data !== 'object') throw new Error('文件内容不是合法 JSON 对象');
+      if (!('familyInfo' in data) && !('todos' in data) && !('conversation' in data)) {
+        throw new Error('不是 RootLink 档案文件（缺少必要字段）');
+      }
+
+      // 恢复 familyInfo / todos
+      familyInfo = data.familyInfo || {};
+      todos = Array.isArray(data.todos) ? data.todos.map(t => ({ text: t.text, done: !!t.done })) : [];
+
+      updateInfoPanel();
+      updateTodoPanel();
+      updateBadge();
+
+      // 恢复对话（可选：如果你不想恢复对话，删掉这段）
+      if (Array.isArray(data.conversation) && data.conversation.length) {
+        const messages = document.getElementById('messages');
+        messages.innerHTML = '';
+        document.getElementById('welcome').style.display = 'none';
+        messages.classList.add('visible');
+        conversationStarted = true;
+
+        data.conversation.forEach(item => {
+          const div = document.createElement('div');
+          div.className = `message ${item.role === 'user' ? 'user' : 'agent'}`;
+          div.innerHTML = `<div class="avatar ${item.role === 'user' ? 'user' : 'agent'}">${item.role === 'user' ? '我' : '向'}</div>
+                           <div class="bubble">${item.html || ''}</div>`;
+          messages.appendChild(div);
+        });
+        messages.scrollTop = messages.scrollHeight;
+      } else {
+        // 没有对话也没关系：如果用户导入后希望立即看到面板，就直接打开侧栏
+        // togglePanel(); // 你如果想导入后自动打开档案，可以取消注释
+      }
+
+      showError('导入成功：档案已恢复'); // 复用现有 toast 样式
+      // 让提示更像成功提示（可选）：你也可以做一个 success toast；这里先用 showError 简化
+
+    } catch (err) {
+      showError('导入失败：' + err.message);
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+});
+
+function resetConversation() {
+  const ok = confirm('确定要重新开始吗？这会清空当前对话、档案和行动清单（建议先导出备份）。');
+  if (!ok) return;
+
+  // 清空 UI
+  const messages = document.getElementById('messages');
+  messages.innerHTML = '';
+  messages.classList.remove('visible');
+
+  document.getElementById('welcome').style.display = '';
+  conversationStarted = false;
+
+  // 清空数据
+  todos = [];
+  familyInfo = {};
+  updateInfoPanel();
+  updateTodoPanel();
+  updateBadge();
+
+  // 关闭侧栏（如果开着）
+  panelOpen = false;
+  document.getElementById('sidePanel').classList.remove('open');
+  document.getElementById('panelBtn').innerHTML = '📋 寻根档案 <span class="badge" id="todoBadge"></span>';
+
+  // 新会话 id（让后端也当作新对话）
+  sessionId = 'sess_' + Math.random().toString(36).substr(2,16);
+
+  // 清掉 URL 预填发送的 sessionStorage 标记（避免 reset 后同 q 不再触发）
+  Object.keys(sessionStorage).forEach(k => {
+    if (k.startsWith('rootlink_prefill_sent_')) sessionStorage.removeItem(k);
+  });
+}
 </script>
 </body>
 </html>
