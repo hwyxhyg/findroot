@@ -298,44 +298,19 @@
         <div class="collapse-body open">${guideCards}</div></div>`);
     }
     if (data.todos && data.todos.length > 0) {
-    data.todos.forEach(t => {
-      // 支持两种：string / object
-      const incoming = (typeof t === "string")
-        ? { id: null, text: t, done: false }
-        : { id: t.id, text: t.text, done: !!t.done };
-  
-      if (!incoming.text) return;
-  
-      // 清洗 text：去掉结尾冒号
-      const cleanText = String(incoming.text).replace(/[：:]\s*$/g, "").trim();
-      if (!cleanText) return;
-  
-      // ✅ 关键：按 id 精准更新（后端为准）
-      let existing = null;
-      if (incoming.id) {
-        existing = todos.find(x => x.id === incoming.id);
-      }
-      // 兜底：如果没 id，再按文本匹配一次
-      if (!existing) {
-        existing = todos.find(x => x.text === cleanText);
-      }
-  
-      if (existing) {
-        existing.id = incoming.id || existing.id;
-        existing.text = cleanText;
-        existing.done = incoming.done;   // ✅ 后端 true/false 覆盖前端
-      } else {
-        todos.push({
-          id: incoming.id || ("T" + (todos.length + 1)),
-          text: cleanText,
-          done: incoming.done
-        });
-      }
-    });
+  data.todos.forEach(t => {
+    const text = typeof t === 'string' ? t : t.text;
+    const done = typeof t === 'object' ? !!t.done : false;
+    if (!text) return;
+    const existing = todos.find(x => x.text === text);
+    if (existing) {
+      existing.done = done;
+    } else {
+      todos.push({ text, done });
+    }
+  });
+  updateTodoPanel(); updateBadge();
 }
-  
-    updateTodoPanel();
-    updateBadge();
     return `<div class="agent-response">${parts.join('')}</div>`;
   }
 
