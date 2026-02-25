@@ -142,28 +142,27 @@
     color:rgba(26,18,8,.75);
   }
   .icon-ghost:active{ transform:translateY(1px); }
-  .panel-tools{
+  .panel-actions{
     display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:.6rem;
-    padding:.6rem .65rem;
-    background:rgba(255,255,255,.55);
-    border:1px solid rgba(184,134,11,.15);
-    border-radius:8px;
-  }
-  .panel-tools-actions{
-    display:flex;
-    align-items:center;
-    gap:.35rem;
+    gap:1rem;
+    justify-content:flex-end;
+    margin-bottom:.8rem;
   }
   
-  .panel-tools .icon-btn{
-    width:28px;
-    height:28px;
-    border-radius:7px;
-    font-size:.9rem;
+  .panel-text-btn{
+    background:none;
+    border:none;
+    padding:0;
+    cursor:pointer;
+    font-family:'Noto Sans SC',sans-serif;
+    font-size:.78rem;
+    color:rgba(26,18,8,.55);
+    transition:color .15s ease;
   }
+  
+  .panel-text-btn:hover{ color:var(--ink); }
+  .panel-text-btn:active{ opacity:.6; }
+  
   @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
   .messages::-webkit-scrollbar,.side-panel-inner::-webkit-scrollbar{display:none;}
   .messages,.side-panel-inner{-ms-overflow-style:none;scrollbar-width:none;}
@@ -218,11 +217,9 @@
     <div class="side-panel-inner">
 
         <!-- ✅ 新增：档案工具条（放最上方） -->
-      <div class="panel-tools" style="display:flex;justify-content:flex-end;gap:.4rem;">
-        <div class="panel-tools-actions">
-          <button class="icon-ghost" onclick="exportArchive()" aria-label="导出历史记录" title="导出">📤</button>
-          <button class="icon-ghost" onclick="triggerImport()" aria-label="导入历史记录" title="导入">📥</button>
-        </div>
+      <div class="panel-actions">
+        <button class="panel-text-btn" onclick="exportArchive()" title="导出">📤 导出</button>
+        <button class="panel-text-btn" onclick="triggerImport()" title="导入">📥 导入</button>
       </div>
       
       <div class="panel-section">
