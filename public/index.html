@@ -511,6 +511,12 @@
           if (line.startsWith('data:')) {
             try {
               const data = JSON.parse(line.slice(5).trim());
+              
+              console.log('SSE raw:', data);
+              
+              if (data.content?.structured) {
+                console.log('STRUCTURED RECEIVED:', data.content.structured);
+              }
               const newText = (data.type==='answer'&&data.content?.answer) ? data.content.answer : '';
               if (newText) {
                 if (firstChunk) { hideTyping(); firstChunk=false; }
