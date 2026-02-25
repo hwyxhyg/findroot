@@ -199,14 +199,10 @@
   document.getElementById('welcomeChar').textContent = p.char;
   document.getElementById('welcomePoem').textContent = p.text;
   
-  // ===== 修改 API URL 为 SSE 接口 =====
-  const API_URL = '/api/chat/sse';
+  const API_URL = '/api/chat';
   let sessionId = 'sess_' + Math.random().toString(36).substr(2,16);
   let isLoading = false, conversationStarted = false, panelOpen = false;
-  
-  // ===== 使用 Map 管理 todos，支持跨轮对话累计 =====
-  const todosMap = new Map();
-  let familyInfo = {};
+  let todos = [], familyInfo = {};
 
   function togglePanel() {
     panelOpen = !panelOpen;
@@ -220,7 +216,7 @@
   function updateBadge() {
     const badge = document.getElementById('todoBadge');
     if (!badge) return;
-    const undone = Array.from(todosMap.values()).filter(t => !t.done).length;
+    const undone = todos.filter(t => !t.done).length;
     badge.textContent = undone;
     badge.classList.toggle('visible', !panelOpen && undone > 0);
   }
@@ -239,30 +235,33 @@
     header.nextElementSibling.classList.toggle('open');
   }
 
-  function escapeHTML(str) {
-    if (str === null || str === undefined) return '';
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  function tryParseJSON(text) {
+    if (!text || typeof text !== 'string') return null;
+    const start = text.indexOf('{');
+    if (start === -1) return null;
+    let depth = 0;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '{') depth++;
+      else if (ch === '}') depth--;
+      if (depth === 0) {
+        const candidate = text.slice(start, i + 1);
+        try { return JSON.parse(candidate); } catch (e) { return null; }
+      }
+    }
+    return null;
   }
 
-  // ===== 渲染结构化响应 =====
   function renderStructuredResponse(data) {
     const parts = [];
-    
-    // 处理消息文本
     if (data.message) {
       parts.push(`<div class="agent-message-text">${escapeHTML(data.message).replace(/\n/g,'<br>')}</div>`);
     }
-    
-    // 处理用户信息
     if (data.user_info) {
       const info = data.user_info;
       const rows = [
-        ['姓氏', info.surname],
-        ['祖籍', info.location],
-        ['方言', info.dialect],
-        ['迁移', info.migration_info],
-      ].filter(([,v]) => v && v !== '未提供' && v !== '未知' && v !== null && v !== '');
-      
+        ['姓氏', info.surname],['祖籍', info.location],['方言', info.dialect],['迁移', info.migration_info],
+      ].filter(([,v]) => v && v !== '未提供' && v !== '未知');
       if (rows.length) {
         parts.push(`<div class="collapse-block">
           <div class="collapse-header" onclick="toggleCollapse(this)">
@@ -271,15 +270,11 @@
           <div class="collapse-body"><div class="info-grid">
             ${rows.map(([l,v])=>`<div class="info-grid-row"><span class="info-grid-label">${escapeHTML(l)}</span><span class="info-grid-value">${escapeHTML(v)}</span></div>`).join('')}
           </div></div></div>`);
-        
-        // 更新家族信息
         rows.forEach(([l,v]) => { familyInfo[l] = v; });
         updateInfoPanel();
       }
     }
-    
-    // 处理分析
-    if (data.analysis && data.analysis.trim()) {
+    if (data.analysis) {
       parts.push(`<div class="collapse-block">
         <div class="collapse-header open" onclick="toggleCollapse(this)">
           <span class="collapse-title">🎯 亲缘地分析</span><span class="collapse-arrow">▼</span>
@@ -287,8 +282,6 @@
         <div class="collapse-body open"><div class="analysis-text">${escapeHTML(data.analysis).replace(/\n/g,'<br>')}</div></div>
       </div>`);
     }
-    
-    // 处理中间人
     if (data.intermediaries && data.intermediaries.length > 0) {
       const guideCards = data.intermediaries.map(g => `
         <div class="guide-card">
@@ -304,93 +297,117 @@
         </div>
         <div class="collapse-body open">${guideCards}</div></div>`);
     }
-    
+    if (data.todos && data.todos.length > 0) {
+      data.todos.forEach(t => { if (!todos.find(x => x.text === t)) todos.push({text: t, done: false}); });
+      updateTodoPanel(); updateBadge();
+    }
     return `<div class="agent-response">${parts.join('')}</div>`;
   }
 
-  // ===== 更新 todos（核心优化） =====
-  function updateTodosFromStructured(data) {
-    if (!data.todos || !Array.isArray(data.todos)) return;
-    
-    console.log('📋 收到 todos:', data.todos);
-    
-    data.todos.forEach(todo => {
-      // 确保有 id 和 text
-      if (!todo.id || !todo.text) {
-        console.warn('⚠️ 无效的 todo:', todo);
-        return;
-      }
-      
-      // 检查是否已存在
-      if (todosMap.has(todo.id)) {
-        // 更新现有 todo
-        const existing = todosMap.get(todo.id);
-        existing.done = todo.done;
-        existing.text = todo.text;
-        console.log(`✏️ 更新 todo [${todo.id}]: ${todo.text} (done=${todo.done})`);
-      } else {
-        // 新增 todo
-        todosMap.set(todo.id, { ...todo });
-        console.log(`➕ 新增 todo [${todo.id}]: ${todo.text} (done=${todo.done})`);
-      }
-    });
-    
-    updateTodoPanel();
-    updateBadge();
+  function renderPlainText(text) {
+    return text
+      .replace(/### (.+)/g,'<h4 style="font-family:Noto Serif SC;color:var(--red);margin:.6em 0 .2em;font-size:.88rem;">$1</h4>')
+      .replace(/## (.+)/g,'<h3 style="font-family:Noto Serif SC;color:var(--red);margin:.8em 0 .3em;">$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\n/g,'<br>');
   }
 
-  // ===== 更新信息面板 =====
+  function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // 从全文中找到📋段落搬到家族信息面板，找到💡段落提取todos
+  function extractAndUpdatePanel(text) {
+    if (!text) return;
+    const allEmojis = ['📋','🎯','👥','💡','💬','💌','📊'];
+
+    function getSection(emoji) {
+      let pos = -1;
+      for (let i = 0; i < text.length; i++) {
+        if (text.startsWith(emoji, i) && (i === 0 || text[i-1] === '\n')) {
+          pos = i; break;
+        }
+      }
+      if (pos === -1) return null;
+      let end = text.length;
+      for (let i = pos + 1; i < text.length; i++) {
+        if (text[i-1] === '\n' && allEmojis.some(e => text.startsWith(e, i))) {
+          end = i; break;
+        }
+      }
+      const section = text.slice(pos, end).trim();
+      const newline = section.indexOf('\n');
+      return newline === -1 ? '' : section.slice(newline + 1).trim();
+    }
+
+    // 📋 → 家族信息面板直接搬运
+    const infoBody = getSection('📋');
+    if (infoBody) {
+      familyInfo._raw = infoBody;
+      updateInfoPanel();
+    }
+
+    // 💡 → todos逐条提取
+    const todoBody = getSection('💡');
+    if (todoBody) {
+      const todoRe = /^[1-9][.、]\s*(.{5,60})/gm;
+      let m, updated = false;
+      while ((m = todoRe.exec(todoBody)) !== null) {
+        let t = m[1].replace(/\*\*/g,'').trim();
+        // 去掉结尾的冒号/全角冒号/多余标点和空格
+        t = t.replace(/[：:]\s*$/g, '').trim();
+        if (t.includes('[') || t.includes('【') || t.includes('请提供')) continue;
+        if (!todos.find(x => x.text === t)) { todos.push({text: t, done: false}); updated = true; }
+      }
+      if (updated) { updateTodoPanel(); updateBadge(); }
+    }
+  }
+
   function updateInfoPanel() {
     const infoPanel = document.getElementById('infoPanel');
-    const entries = Object.entries(familyInfo).filter(([k, v]) => v && v !== '未提供' && v !== '未知' && v !== null && v !== '');
-    
-    if (entries.length > 0) {
-      const html = entries.map(([k, v]) => 
-        `<div class="info-row"><span class="info-label">${escapeHTML(k)}</span><span>${escapeHTML(v)}</span></div>`
-      ).join('');
-      infoPanel.innerHTML = html;
+    if (familyInfo._raw) {
+      const lines = familyInfo._raw.split('\n').map(l => l.trim()).filter(l => l && l !== '---');
+      const html = lines.map(line => {
+        // **字段**：值 → 标签+值格式
+        const fieldMatch = line.match(/^\*\*(.+?)\*\*[：:]\s*(.*)/);
+        if (fieldMatch) {
+          const label = fieldMatch[1];
+          const val = fieldMatch[2];
+          return `<div class="info-row"><span class="info-label">${escapeHTML(label)}</span><span>${escapeHTML(val)}</span></div>`;
+        }
+        // - 开头 → 缩进小字
+        if (line.startsWith('- ')) {
+          return `<div style="padding-left:.8rem;color:rgba(26,18,8,.6);font-size:.73rem;line-height:1.7;">· ${escapeHTML(line.slice(2))}</div>`;
+        }
+        // 普通行
+        return `<div style="font-size:.78rem;line-height:1.8;">${escapeHTML(line)}</div>`;
+      }).join('');
+      infoPanel.innerHTML = `<div style="font-size:.78rem;line-height:1.9;">${html}</div>`;
     } else {
       infoPanel.innerHTML = `<div class="empty-panel">开始对话后，<br>信息会自动整理在这里</div>`;
     }
   }
 
-  // ===== 更新 todo 面板 =====
   function updateTodoPanel() {
     const todoPanel = document.getElementById('todoPanel');
-    const todos = Array.from(todosMap.values());
-    
     if (todos.length > 0) {
-      todoPanel.innerHTML = `<div class="todo-list">${todos.map((t) => `
-        <div class="todo-item ${t.done ? 'done' : ''}" style="display:flex;align-items:flex-start;justify-content:space-between;gap:.3rem;">
-          <div style="display:flex;align-items:flex-start;gap:.5rem;flex:1;cursor:pointer;" onclick="toggleTodo('${t.id}')">
-            <div class="todo-check">${t.done ? '✓' : ''}</div>
+      todoPanel.innerHTML = `<div class="todo-list">${todos.map((t,i)=>`
+        <div class="todo-item ${t.done?'done':''}" style="display:flex;align-items:flex-start;justify-content:space-between;gap:.3rem;">
+          <div style="display:flex;align-items:flex-start;gap:.5rem;flex:1;cursor:pointer;" onclick="toggleTodo(${i})">
+            <div class="todo-check">${t.done?'✓':''}</div>
             <span class="todo-text">${escapeHTML(t.text)}</span>
           </div>
-          <button onclick="deleteTodo('${t.id}')" style="background:none;border:none;cursor:pointer;color:rgba(26,18,8,.2);font-size:.8rem;padding:1px 2px;flex-shrink:0;line-height:1;transition:color .15s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='rgba(26,18,8,.2)'">🗑</button>
+          <button onclick="deleteTodo(${i})" style="background:none;border:none;cursor:pointer;color:rgba(26,18,8,.2);font-size:.8rem;padding:1px 2px;flex-shrink:0;line-height:1;transition:color .15s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='rgba(26,18,8,.2)'">🗑</button>
         </div>`).join('')}</div>`;
     } else {
       todoPanel.innerHTML = `<div class="empty-panel">Agent会为你<br>生成可勾选的行动清单</div>`;
     }
   }
 
-  // ===== 切换 todo 状态 =====
-  function toggleTodo(todoId) {
-    if (todosMap.has(todoId)) {
-      const todo = todosMap.get(todoId);
-      todo.done = !todo.done;
-      updateTodoPanel();
-      updateBadge();
-      console.log(`✅ 切换 todo [${todoId}] 状态: done=${todo.done}`);
-    }
-  }
+  function toggleTodo(i) { todos[i].done=!todos[i].done; updateTodoPanel(); updateBadge(); }
 
-  // ===== 删除 todo =====
-  function deleteTodo(todoId) {
-    todosMap.delete(todoId);
-    updateTodoPanel();
-    updateBadge();
-    console.log(`🗑️ 删除 todo [${todoId}]`);
-  }
+  function deleteTodo(i) { todos.splice(i, 1); updateTodoPanel(); updateBadge(); }
 
   function addMessage(role, content, isHTML=false) {
     if (!conversationStarted) {
@@ -401,173 +418,108 @@
     const messages = document.getElementById('messages');
     const div = document.createElement('div');
     div.className = `message ${role}`;
-    const bubbleContent = isHTML ? content : content.replace(/\n/g,'<br>');
+    const bubbleContent = isHTML ? content : renderPlainText(content);
     div.innerHTML = `<div class="avatar ${role}">${role==='agent'?'向':'我'}</div><div class="bubble">${bubbleContent}</div>`;
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
     return div;
   }
 
-  function showTyping() { 
-    document.getElementById('typing').classList.add('visible'); 
-    scrollDown(); 
-  }
-  
-  function hideTyping() { 
-    document.getElementById('typing').classList.remove('visible'); 
-  }
-  
-  function scrollDown() { 
-    const m=document.getElementById('messages'); 
-    m.scrollTop=m.scrollHeight; 
-  }
+  function showTyping() { document.getElementById('typing').classList.add('visible'); scrollDown(); }
+  function hideTyping() { document.getElementById('typing').classList.remove('visible'); }
+  function scrollDown() { const m=document.getElementById('messages'); m.scrollTop=m.scrollHeight; }
 
-  // ===== 发送消息（核心优化） =====
   async function sendMessage() {
     const input = document.getElementById('input');
     const text = input.value.trim();
     if (!text || isLoading) return;
-    
-    input.value=''; 
-    input.style.height='auto';
-    isLoading=true; 
-    document.getElementById('sendBtn').disabled=true;
-    
+    input.value=''; input.style.height='auto';
+    isLoading=true; document.getElementById('sendBtn').disabled=true;
     addMessage('user', text);
     showTyping();
 
     try {
-      // 使用 SSE 接口
-      const url = `${API_URL}?user_id=${sessionId}&message=${encodeURIComponent(text)}`;
-      const response = await fetch(url);
-      
+      const response = await fetch(API_URL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text, session_id:sessionId})
+      });
       if (!response.ok) throw new Error(`请求失败 (${response.status})`);
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let fullText = '';
-      let agentDiv = null;
-      let firstChunk = true;
-      let receivedStructured = false;
+      let fullText='', agentDiv=null, firstChunk=true;
 
       while (true) {
         const {done, value} = await reader.read();
         if (done) break;
-        
-        const chunk = decoder.decode(value, {stream: true});
-        const lines = chunk.split('\n\n'); // SSE 事件以 \n\n 分隔
-        
-        for (const line of lines) {
-          if (!line.trim() || !line.startsWith('data:')) continue;
-          
-          try {
-            const dataStr = line.slice(5).trim(); // 移除 "data: " 前缀
-            const data = JSON.parse(dataStr);
-            
-            console.log('📡 SSE 事件:', data);
-            
-            if (data.type === 'answer') {
-              // 处理流式文本
-              const newText = data.content?.answer || '';
+        const chunk = decoder.decode(value,{stream:true});
+        for (const line of chunk.split('\n')) {
+          if (line.startsWith('data:')) {
+            try {
+              const data = JSON.parse(line.slice(5).trim());
+              const newText = (data.type==='answer'&&data.content?.answer) ? data.content.answer : '';
               if (newText) {
-                if (firstChunk) { 
-                  hideTyping(); 
-                  firstChunk = false; 
-                }
+                if (firstChunk) { hideTyping(); firstChunk=false; }
                 fullText += newText;
-                if (!agentDiv) { 
-                  agentDiv = addMessage('agent', fullText); 
-                } else { 
-                  agentDiv.querySelector('.bubble').innerHTML = fullText.replace(/\n/g,'<br>');
-                  scrollDown(); 
-                }
+                if (!agentDiv) { agentDiv=addMessage('agent', fullText); }
+                else { agentDiv.querySelector('.bubble').innerHTML=renderPlainText(fullText); scrollDown(); }
               }
-            } else if (data.type === 'structured') {
-              // 🎯 处理结构化数据（包含 todos）
-              console.log('🎯 收到 structured 事件:', data.content);
-              receivedStructured = true;
-              
-              // 更新 todos
-              updateTodosFromStructured(data.content);
-              
-              // 更新消息显示
-              if (agentDiv) {
-                agentDiv.querySelector('.bubble').innerHTML = renderStructuredResponse(data.content);
-                scrollDown();
-              }
-            }
-          } catch (e) {
-            console.error('解析 SSE 事件失败:', e, line);
+            } catch(e){}
           }
         }
       }
 
       hideTyping();
 
-      // 如果没有收到 structured 事件，尝试从全文中解析
-      if (!receivedStructured && fullText) {
-        console.log('⚠️ 未收到 structured 事件，尝试从全文解析');
-        // 保留原有的正则解析作为兜底
-        tryParseAndExtract(fullText);
+      if (!fullText) {
+        addMessage('agent','我收到了你的信息，正在整理中……');
+      } else {
+        const parsed = tryParseJSON(fullText);
+        if (parsed && agentDiv) {
+          agentDiv.querySelector('.bubble').innerHTML = renderStructuredResponse(parsed);
+          scrollDown();
+          extractAndUpdatePanel(fullText);
+        } else {
+          extractAndUpdatePanel(fullText);
+        }
       }
 
     } catch(err) {
       hideTyping();
       showError('连接出现问题：'+err.message);
-      console.error('请求错误:', err);
     } finally {
       isLoading=false;
       document.getElementById('sendBtn').disabled=false;
       input.focus();
     }
   }
-
-  // ===== 兜底：从全文中解析（保留原有逻辑） =====
-  function tryParseAndExtract(text) {
-    // 尝试解析 JSON
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        const parsed = JSON.parse(jsonMatch[0]);
-        console.log('🔍 从全文解析到 JSON:', parsed);
-        
-        updateTodosFromStructured(parsed);
-        
-        const agentDiv = document.querySelector('.message.agent:last-child .bubble');
-        if (agentDiv) {
-          agentDiv.innerHTML = renderStructuredResponse(parsed);
-          scrollDown();
-        }
-        return;
-      } catch (e) {
-        console.warn('JSON 解析失败:', e);
-      }
-    }
-  }
-
-  // ===== Prefill + Auto send from URL (?q=...) =====
-  (function prefillAndSendFromQuery() {
-    const params = new URLSearchParams(window.location.search);
-    const q = params.get("q");
-    if (!q) return;
-  
-    const key = "rootlink_prefill_sent_" + q;
-    if (sessionStorage.getItem(key)) return;
-  
-    const input = document.getElementById("input");
-    if (!input) return;
-  
-    input.value = q;
-    autoResize(input);
-    input.focus();
-  
-    setTimeout(() => {
-      if (isLoading) return;
-      sessionStorage.setItem(key, "1");
-      sendMessage();
-      history.replaceState({}, "", window.location.pathname);
-    }, 120);
-  })();
+      // ====== Prefill + Auto send from URL (?q=...) ======
+    (function prefillAndSendFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get("q");
+      if (!q) return;
+    
+      // 1) 防止刷新/回退重复自动发送：sessionStorage 记一次
+      const key = "rootlink_prefill_sent_" + q;
+      if (sessionStorage.getItem(key)) return;
+    
+      const input = document.getElementById("input");
+      if (!input) return;
+    
+      input.value = q;
+      autoResize(input);
+      input.focus();
+    
+      // 2) 等页面稳定后再发，且避免 isLoading 冲突
+      setTimeout(() => {
+        if (isLoading) return; // 保险：如果正在请求中就别自动发
+        sessionStorage.setItem(key, "1");
+        sendMessage();
+        // 3) 清理 URL：避免用户复制链接再触发
+        history.replaceState({}, "", window.location.pathname);
+      }, 120);
+    })();
 </script>
 </body>
 </html>
