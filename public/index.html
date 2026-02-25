@@ -252,7 +252,7 @@
   document.getElementById('welcomeChar').textContent = p.char;
   document.getElementById('welcomePoem').textContent = p.text;
   
-  const API_URL = '/api/chat';
+  const API_URL = '/api/chat/sse';
   let sessionId = 'sess_' + Math.random().toString(36).substr(2,16);
   let isLoading = false, conversationStarted = false, panelOpen = false;
   let todos = [], familyInfo = {};
