@@ -453,17 +453,31 @@
       while (true) {
         const {done, value} = await reader.read();
         if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // ✅ 只在拿到完整事件（\n\n）后再解析
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || '';
         
-        const chunk = decoder.decode(value, {stream: true});
-        const lines = chunk.split('\n\n'); // SSE 事件以 \n\n 分隔
+        for (const evt of events) {
+          if (!evt.trim()) continue;
         
-        for (const line of lines) {
-          if (!line.trim() || !line.startsWith('data:')) continue;
-          
+          // 处理一个完整 SSE 事件块（可能包含多行 data:）
+          const dataLines = evt
+            .split('\n')
+            .filter(l => l.startsWith('data:'));
+        
+          if (!dataLines.length) continue;
+        
           try {
-            const dataStr = line.slice(5).trim(); // 移除 "data: " 前缀
+            // 把多行 data: 拼接成一个完整 JSON
+            const dataStr = dataLines
+              .map(l => l.slice(5).trim())
+              .join('\n');
+        
             const data = JSON.parse(dataStr);
-            
+        
             console.log('📡 SSE 事件:', data);
             
             if (data.type === 'answer') {
