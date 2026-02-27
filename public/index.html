@@ -33,9 +33,10 @@
   /* side-panel-inner 撑满剩余高度，flex列 */
   .side-panel-inner{width:300px;display:flex;flex-direction:column;padding:1.2rem;gap:1rem;flex:1;overflow:hidden;}
 
-  /* 两个 panel-section —— 家族信息固定高度，todo 撑满剩余 */
-  .panel-section{background:white;border:1px solid rgba(184,134,11,.15);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;}
-  .panel-section.grow{flex:1;min-height:0;} /* todo section 用这个撑满 */
+  /* 两个 panel-section —— 家族信息限高可滚动，todo 撑满剩余 */
+  .panel-section{background:white;border:1px solid rgba(184,134,11,.15);border-radius:6px;overflow:hidden;display:flex;flex-direction:column;max-height:45%;flex-shrink:0;}
+  .panel-section:not(.grow) .panel-section-body{overflow-y:auto;}
+  .panel-section.grow{flex:1;min-height:0;max-height:none;flex-shrink:1;}
 
   .panel-section-header{padding:.6rem .9rem;background:rgba(200,149,108,.08);border-bottom:1px solid rgba(184,134,11,.1);font-family:'Noto Serif SC',serif;font-size:.8rem;color:var(--red);font-weight:600;letter-spacing:.05em;flex-shrink:0;}
   /* body 也要 flex:1 才能让内部 todoPanel 滚动 */
