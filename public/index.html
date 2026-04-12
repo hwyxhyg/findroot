@@ -685,9 +685,9 @@ async function sendOtp() {
   const btn = event.target;
   btn.textContent = '发送中…'; btn.disabled = true;
   const { error } = await _sb.auth.signInWithOtp({ 
-    email,
-    options: {
-      emailRedirectTo: 'https://getrootlink.com'
+  email,
+  options: {
+    shouldCreateUser: true
   }
 });
   if (error) {
