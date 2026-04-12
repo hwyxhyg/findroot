@@ -14,6 +14,11 @@ export default async function handler(req, res) {
 
   const { text, session_id } = req.body;
 
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() 
+           || req.socket?.remoteAddress 
+           || 'unknown';
+  console.log(`[访问记录] IP: ${ip}, session: ${session_id}, 时间: ${new Date().toISOString()}`);
+
   if (!text) {
     return res.status(400).json({ error: 'Missing text' });
   }
