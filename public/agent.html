@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
+<head><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RootLink-打通全球华人的寻根连接网络 </title>
@@ -233,6 +233,66 @@
 </div>
 
 <script>
+  const _sb = window.supabase.createClient(
+  'https://zjxtyukdvuvhoxldpakk.supabase.co',
+  'sb_publishable_prGtV9CcT8uchDMPF643vg_K8FkKy2m'
+);
+
+let currentUser = null;
+
+// 页面加载时检查登录状态
+_sb.auth.getSession().then(({ data: { session } }) => {
+  if (session) {
+    currentUser = session.user;
+    loadFromServer(session.user.email);
+  }
+});
+async function loadFromServer(email) {
+  try {
+    const res = await fetch('/api/load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: email })
+    });
+    const { data } = await res.json();
+    if (!data) return;
+    if (data.familyInfo) { familyInfo = data.familyInfo; updateInfoPanel(); }
+    if (data.todos) { todos = data.todos; updateTodoPanel(); updateBadge(); }
+    if (data.conversation && data.conversation.length) {
+      const messages = document.getElementById('messages');
+      messages.innerHTML = '';
+      document.getElementById('welcome').style.display = 'none';
+      messages.classList.add('visible');
+      conversationStarted = true;
+      data.conversation.forEach(item => {
+        const div = document.createElement('div');
+        div.className = `message ${item.role}`;
+        div.innerHTML = `<div class="avatar ${item.role}">${item.role === 'user' ? '我' : '向'}</div><div class="bubble">${item.html}</div>`;
+        messages.appendChild(div);
+      });
+      messages.scrollTop = messages.scrollHeight;
+    }
+  } catch(e) { console.log('读档失败', e); }
+}
+
+async function saveToServer() {
+  if (!currentUser) return;
+  const payload = {
+    familyInfo,
+    todos,
+    conversation: Array.from(document.querySelectorAll('#messages .message')).map(node => ({
+      role: node.classList.contains('user') ? 'user' : 'agent',
+      html: node.querySelector('.bubble')?.innerHTML || ''
+    }))
+  };
+  try {
+    await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: currentUser.email, data: payload })
+    });
+  } catch(e) { console.log('存档失败', e); }
+}
   const poems = [
     { char: '故乡', text: '少小离家老大回，乡音无改鬓毛催' },
     { char: '根', text: '树高千尺，叶落归根' },
@@ -532,6 +592,7 @@
       isLoading=false;
       document.getElementById('sendBtn').disabled=false;
       input.focus();
+      await saveToServer();
     }
   }
 
