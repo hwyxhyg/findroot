@@ -17,8 +17,17 @@ export default async function handler(req, res) {
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() 
            || req.socket?.remoteAddress 
            || 'unknown';
-  console.log(`[访问记录] IP: ${ip}, session: ${session_id}, 时间: ${new Date().toISOString()}`);
-
+  
+  fetch(`${process.env.SUPABASE_URL}/rest/v1/visits`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': process.env.SUPABASE_SERVICE_KEY,
+      'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`
+    },
+    body: JSON.stringify({ ip, session_id })
+  }).catch(() => {});
+  
   if (!text) {
     return res.status(400).json({ error: 'Missing text' });
   }
