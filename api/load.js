@@ -1,10 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -15,12 +8,17 @@ export default async function handler(req, res) {
   const { user_id } = req.body;
   if (!user_id) return res.status(400).json({ error: 'missing user_id' });
 
-  const { data, error } = await supabase
-    .from('archives')
-    .select('data')
-    .eq('user_id', user_id)
-    .single();
+  const response = await fetch(
+    `${process.env.SUPABASE_URL}/rest/v1/archives?user_id=eq.${encodeURIComponent(user_id)}&select=data`,
+    {
+      headers: {
+        'apikey': process.env.SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`
+      }
+    }
+  );
 
-  if (error) return res.status(200).json({ data: null });
-  res.status(200).json({ data: data?.data || null });
+  if (!response.ok) return res.status(200).json({ data: null });
+  const rows = await response.json();
+  res.status(200).json({ data: rows[0]?.data || null });
 }
