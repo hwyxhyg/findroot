@@ -233,20 +233,21 @@
 </div>
 
 <script>
-  const _sb = window.supabase.createClient(
-  'https://zjxtyukdvuvhoxldpakk.supabase.co',
-  'sb_publishable_prGtV9CcT8uchDMPF643vg_K8FkKy2m'
-);
+  var _sb = null;
+  let currentUser = null;
+  document.addEventListener('DOMContentLoaded', function() {
+    _sb = window.supabase.createClient(
+      'https://zjxtyukdvuvhoxldpakk.supabase.co',
+      'sb_publishable_prGtV9CcT8uchDMPF643vg_K8FkKy2m'
+    );
+    _sb.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        currentUser = session.user;
+        loadFromServer(session.user.email);
+      }
+    });
+  });
 
-let currentUser = null;
-
-// 页面加载时检查登录状态
-_sb.auth.getSession().then(({ data: { session } }) => {
-  if (session) {
-    currentUser = session.user;
-    loadFromServer(session.user.email);
-  }
-});
 async function loadFromServer(email) {
   try {
     const res = await fetch('/api/load', {
