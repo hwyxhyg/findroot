@@ -40,7 +40,7 @@
 
   .panel-section-header{padding:.6rem .9rem;background:rgba(200,149,108,.08);border-bottom:1px solid rgba(184,134,11,.1);font-family:'Noto Serif SC',serif;font-size:.8rem;color:var(--red);font-weight:600;letter-spacing:.05em;flex-shrink:0;}
   /* body 也要 flex:1 才能让内部 todoPanel 滚动 */
-  .panel-section-body{padding:.8rem .9rem;font-size:.78rem;line-height:1.7;flex:1;display:flex;flex-direction:column;min-height:0;}
+  .panel-section-body{padding:.8rem .9rem;font-size:.78rem;line-height:1.7;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
 
   /* todoPanel 撑满 body，内部滚动 */
   #todoPanel{flex:1;overflow-y:auto;min-height:0;}
@@ -403,7 +403,14 @@ async function saveToServer() {
         <div class="collapse-body open">${guideCards}</div></div>`);
     }
     if (data.todos && data.todos.length > 0) {
-      data.todos.forEach(t => { if (!todos.find(x => x.text === t)) todos.push({text: t, done: false}); });
+      data.todos.forEach(t => {
+        // 兼容新模型返回对象 {text, done} 或旧格式字符串
+        const todoText = (typeof t === 'object' && t !== null) ? (t.text || t.action || t.title || JSON.stringify(t)) : String(t);
+        const todoDone = (typeof t === 'object' && t !== null) ? !!t.done : false;
+        if (todoText && !todos.find(x => x.text === todoText)) {
+          todos.push({text: todoText, done: todoDone});
+        }
+      });
       updateTodoPanel(); updateBadge();
     }
     return `<div class="agent-response">${parts.join('')}</div>`;
@@ -562,8 +569,15 @@ async function saveToServer() {
               if (newText) {
                 if (firstChunk) { hideTyping(); firstChunk = false; }
                 fullText += newText;
-                if (!agentDiv) agentDiv = addMessage('agent', fullText);
-                else { agentDiv.querySelector('.bubble').innerHTML = renderPlainText(fullText); scrollDown(); }
+                // 如果当前累积内容看起来是JSON，不实时显示（避免暴露原始JSON给用户）
+                const looksLikeJSON = fullText.trimStart().startsWith('{') || fullText.trimStart().startsWith('```');
+                if (!looksLikeJSON) {
+                  if (!agentDiv) agentDiv = addMessage('agent', fullText);
+                  else { agentDiv.querySelector('.bubble').innerHTML = renderPlainText(fullText); scrollDown(); }
+                } else if (!agentDiv) {
+                  // 显示占位符，让用户知道正在处理
+                  agentDiv = addMessage('agent', '正在整理回复…');
+                }
               }
             } catch (e) {}
           }
@@ -575,9 +589,26 @@ async function saveToServer() {
       if (!fullText) {
         addMessage('agent','我收到了你的信息，正在整理中……');
       } else {
-        const parsed = tryParseJSON(fullText);
+        // 清理可能的 markdown 代码块包裹
+        let cleanText = fullText.trim();
+        if (cleanText.startsWith('```json')) cleanText = cleanText.slice(7);
+        if (cleanText.startsWith('```')) cleanText = cleanText.slice(3);
+        if (cleanText.endsWith('```')) cleanText = cleanText.slice(0, -3);
+        cleanText = cleanText.trim();
+
+        const parsed = tryParseJSON(cleanText) || tryParseJSON(fullText);
         if (parsed && agentDiv) {
           agentDiv.querySelector('.bubble').innerHTML = renderStructuredResponse(parsed);
+          scrollDown();
+        } else if (agentDiv) {
+          // 非JSON，正常显示文本
+          const looksLikeJSON = fullText.trimStart().startsWith('{') || fullText.trimStart().startsWith('```');
+          if (looksLikeJSON) {
+            // JSON解析失败，显示message字段或原文
+            agentDiv.querySelector('.bubble').innerHTML = renderPlainText(fullText.replace(/```json?/g,'').replace(/```/g,'').trim());
+          } else {
+            agentDiv.querySelector('.bubble').innerHTML = renderPlainText(fullText);
+          }
           scrollDown();
         }
         extractAndUpdatePanel(fullText);
