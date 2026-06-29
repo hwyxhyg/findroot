@@ -376,6 +376,11 @@ async function saveToServer() {
             ${rows.map(([l,v])=>`<div class="info-grid-row"><span class="info-grid-label">${escapeHTML(l)}</span><span class="info-grid-value">${escapeHTML(v)}</span></div>`).join('')}
           </div></div></div>`);
         rows.forEach(([l,v]) => { familyInfo[l] = v; });
+        // 同步到英文key方便兼容
+        if (info.surname && info.surname !== '未提供') familyInfo['姓氏'] = info.surname;
+        if (info.location && info.location !== '未提供') familyInfo['祖籍'] = info.location;
+        if (info.dialect && info.dialect !== '未提供') familyInfo['方言'] = info.dialect;
+        if (info.migration_info && info.migration_info !== '未提供') familyInfo['迁移'] = info.migration_info;
         updateInfoPanel();
       }
     }
@@ -500,7 +505,20 @@ async function saveToServer() {
 
   function updateInfoPanel() {
     const infoPanel = document.getElementById('infoPanel');
-    if (familyInfo._raw) {
+
+    // 优先用结构化 user_info 字段渲染
+    const structuredRows = [
+      ['姓氏', familyInfo['姓氏']], ['祖籍', familyInfo['祖籍']],
+      ['方言', familyInfo['方言']], ['迁移', familyInfo['迁移']]
+    ].filter(([, v]) => v && v !== '未提供' && v !== '未知');
+
+    if (structuredRows.length > 0) {
+      const html = structuredRows.map(([l, v]) =>
+        `<div class="info-row"><span class="info-label">${escapeHTML(l)}</span><span>${escapeHTML(v)}</span></div>`
+      ).join('');
+      infoPanel.innerHTML = `<div style="font-size:.78rem;line-height:1.9;">${html}</div>`;
+    } else if (familyInfo._raw) {
+      // 旧格式兼容
       const lines = familyInfo._raw.split('\n').map(l => l.trim()).filter(l => l && l !== '---');
       const html = lines.map(line => {
         const fieldMatch = line.match(/^\*\*(.+?)\*\*[：:]\s*(.*)/);
