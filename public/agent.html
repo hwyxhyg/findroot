@@ -551,6 +551,15 @@ async function saveToServer() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullText='', agentDiv=null, firstChunk=true;
+      let streamedMessageLen = 0;
+
+      function extractMessageSoFar(text) {
+        const t = text.trim().replace(/^```json/, '').replace(/^```/, '').replace(/```$/, '').trim();
+        try { const obj = JSON.parse(t); if (obj && obj.message) return obj.message; } catch(e) {}
+        const m = t.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+        if (m) { try { return JSON.parse('"' + m[1] + '"'); } catch(e) { return m[1]; } }
+        return null;
+      }
 
       while (true) {
         const {done, value} = await reader.read();
@@ -569,14 +578,19 @@ async function saveToServer() {
               if (newText) {
                 if (firstChunk) { hideTyping(); firstChunk = false; }
                 fullText += newText;
-                // 如果当前累积内容看起来是JSON，不实时显示（避免暴露原始JSON给用户）
-                const looksLikeJSON = fullText.trimStart().startsWith('{') || fullText.trimStart().startsWith('```');
-                if (!looksLikeJSON) {
+                const isJSON = fullText.trimStart().startsWith('{') || fullText.trimStart().startsWith('```');
+                if (!isJSON) {
                   if (!agentDiv) agentDiv = addMessage('agent', fullText);
                   else { agentDiv.querySelector('.bubble').innerHTML = renderPlainText(fullText); scrollDown(); }
-                } else if (!agentDiv) {
-                  // 显示占位符，让用户知道正在处理
-                  agentDiv = addMessage('agent', '正在整理回复…');
+                } else {
+                  const msgSoFar = extractMessageSoFar(fullText);
+                  if (msgSoFar && msgSoFar.length > streamedMessageLen) {
+                    streamedMessageLen = msgSoFar.length;
+                    if (!agentDiv) agentDiv = addMessage('agent', msgSoFar);
+                    else { agentDiv.querySelector('.bubble').innerHTML = renderPlainText(msgSoFar); scrollDown(); }
+                  } else if (!agentDiv) {
+                    agentDiv = addMessage('agent', '');
+                  }
                 }
               }
             } catch (e) {}
@@ -589,10 +603,9 @@ async function saveToServer() {
       if (!fullText) {
         addMessage('agent','我收到了你的信息，正在整理中……');
       } else {
-        // 清理可能的 markdown 代码块包裹
         let cleanText = fullText.trim();
         if (cleanText.startsWith('```json')) cleanText = cleanText.slice(7);
-        if (cleanText.startsWith('```')) cleanText = cleanText.slice(3);
+        else if (cleanText.startsWith('```')) cleanText = cleanText.slice(3);
         if (cleanText.endsWith('```')) cleanText = cleanText.slice(0, -3);
         cleanText = cleanText.trim();
 
@@ -601,14 +614,7 @@ async function saveToServer() {
           agentDiv.querySelector('.bubble').innerHTML = renderStructuredResponse(parsed);
           scrollDown();
         } else if (agentDiv) {
-          // 非JSON，正常显示文本
-          const looksLikeJSON = fullText.trimStart().startsWith('{') || fullText.trimStart().startsWith('```');
-          if (looksLikeJSON) {
-            // JSON解析失败，显示message字段或原文
-            agentDiv.querySelector('.bubble').innerHTML = renderPlainText(fullText.replace(/```json?/g,'').replace(/```/g,'').trim());
-          } else {
-            agentDiv.querySelector('.bubble').innerHTML = renderPlainText(fullText);
-          }
+          agentDiv.querySelector('.bubble').innerHTML = renderPlainText(cleanText || fullText);
           scrollDown();
         }
         extractAndUpdatePanel(fullText);
