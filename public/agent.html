@@ -144,6 +144,11 @@
   @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
   .messages::-webkit-scrollbar,.side-panel-inner::-webkit-scrollbar,#todoPanel::-webkit-scrollbar{display:none;}
   .messages,.side-panel-inner,#todoPanel{-ms-overflow-style:none;scrollbar-width:none;}
+  .message-wrap{display:flex;flex-direction:column;gap:.25rem;}
+  .message-actions{display:flex;gap:.3rem;padding-left:38px;}
+  .message.user .message-actions{padding-left:0;padding-right:38px;justify-content:flex-end;}
+  .retry-btn{background:none;border:none;cursor:pointer;color:rgba(26,18,8,.25);font-size:.72rem;padding:.15rem .4rem;border-radius:3px;transition:all .15s;display:flex;align-items:center;gap:.25rem;font-family:'Noto Sans SC',sans-serif;}
+  .retry-btn:hover{background:rgba(200,149,108,.1);color:var(--warm);}
 </style>
 </head>
 <body>
@@ -562,13 +567,50 @@ async function saveToServer() {
       conversationStarted=true;
     }
     const messages = document.getElementById('messages');
+
+    // 外层 wrap（包含气泡 + 操作按钮）
+    const wrap = document.createElement('div');
+    wrap.className = 'message-wrap';
+
     const div = document.createElement('div');
     div.className = `message ${role}`;
     const bubbleContent = isHTML ? content : renderPlainText(content);
     div.innerHTML = `<div class="avatar ${role}">${role==='agent'?'向':'我'}</div><div class="bubble">${bubbleContent}</div>`;
-    messages.appendChild(div);
+    wrap.appendChild(div);
+
+    // agent 消息加重试按钮
+    if (role === 'agent') {
+      const actions = document.createElement('div');
+      actions.className = 'message-actions';
+      actions.innerHTML = `<button class="retry-btn" onclick="retryMessage(this)" title="重新生成">↻ 重新生成</button>`;
+      wrap.appendChild(actions);
+    }
+
+    messages.appendChild(wrap);
     messages.scrollTop = messages.scrollHeight;
     return div;
+  }
+
+  function retryMessage(btn) {
+    if (isLoading) return;
+    // 找到这条 agent 回复对应的上一条 user 消息
+    const wrap = btn.closest('.message-wrap');
+    const allWraps = Array.from(document.querySelectorAll('#messages .message-wrap'));
+    const idx = allWraps.indexOf(wrap);
+    // 往前找最近的 user 消息
+    let userText = null;
+    for (let i = idx - 1; i >= 0; i--) {
+      const userMsg = allWraps[i].querySelector('.message.user .bubble');
+      if (userMsg) { userText = userMsg.textContent.trim(); break; }
+    }
+    if (!userText) return;
+    // 删除这条 agent 回复及之后所有内容
+    for (let i = allWraps.length - 1; i >= idx; i--) {
+      allWraps[i].remove();
+    }
+    // 重新发送
+    document.getElementById('input').value = userText;
+    sendMessage();
   }
 
   function showTyping() { document.getElementById('typing').classList.add('visible'); scrollDown(); }
