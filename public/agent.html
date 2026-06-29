@@ -408,12 +408,10 @@ async function saveToServer() {
         const todoText = (typeof t === 'object' && t !== null) ? (t.text || t.action || t.title || JSON.stringify(t)) : String(t);
         const todoDone = (typeof t === 'object' && t !== null) ? !!t.done : false;
         if (!todoText) return;
-        // 优先用 id 匹配，id 不存在则用 text 匹配
         const existing = todoId
           ? todos.find(x => x.id === todoId)
           : todos.find(x => x.text === todoText);
         if (existing) {
-          // 更新已有项的 done 状态和 text
           existing.done = todoDone;
           existing.text = todoText;
           if (todoId) existing.id = todoId;
@@ -422,6 +420,24 @@ async function saveToServer() {
         }
       });
       updateTodoPanel(); updateBadge();
+
+      // 在气泡里显示未完成的 todo（简洁版）
+      const undone = data.todos.filter(t => (typeof t === 'object' && t !== null) ? !t.done : true);
+      if (undone.length > 0) {
+        const todoLines = undone.map(t => {
+          const text = (typeof t === 'object' && t !== null) ? (t.text || '') : String(t);
+          return `<div style="display:flex;align-items:flex-start;gap:.4rem;padding:.2rem 0;">
+            <span style="color:var(--gold);margin-top:2px;flex-shrink:0;">·</span>
+            <span>${escapeHTML(text)}</span>
+          </div>`;
+        }).join('');
+        parts.push(`<div class="collapse-block">
+          <div class="collapse-header open" onclick="toggleCollapse(this)">
+            <span class="collapse-title">💡 下一步行动</span><span class="collapse-arrow">▼</span>
+          </div>
+          <div class="collapse-body open" style="font-size:.8rem;line-height:1.8;">${todoLines}</div>
+        </div>`);
+      }
     }
     return `<div class="agent-response">${parts.join('')}</div>`;
   }
