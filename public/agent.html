@@ -404,11 +404,21 @@ async function saveToServer() {
     }
     if (data.todos && data.todos.length > 0) {
       data.todos.forEach(t => {
-        // 兼容新模型返回对象 {text, done} 或旧格式字符串
+        const todoId   = (typeof t === 'object' && t !== null) ? t.id   : null;
         const todoText = (typeof t === 'object' && t !== null) ? (t.text || t.action || t.title || JSON.stringify(t)) : String(t);
         const todoDone = (typeof t === 'object' && t !== null) ? !!t.done : false;
-        if (todoText && !todos.find(x => x.text === todoText)) {
-          todos.push({text: todoText, done: todoDone});
+        if (!todoText) return;
+        // 优先用 id 匹配，id 不存在则用 text 匹配
+        const existing = todoId
+          ? todos.find(x => x.id === todoId)
+          : todos.find(x => x.text === todoText);
+        if (existing) {
+          // 更新已有项的 done 状态和 text
+          existing.done = todoDone;
+          existing.text = todoText;
+          if (todoId) existing.id = todoId;
+        } else {
+          todos.push({ id: todoId, text: todoText, done: todoDone });
         }
       });
       updateTodoPanel(); updateBadge();
@@ -555,10 +565,29 @@ async function saveToServer() {
 
       function extractMessageSoFar(text) {
         const t = text.trim().replace(/^```json/, '').replace(/^```/, '').replace(/```$/, '').trim();
+        // 先尝试完整 JSON 解析
         try { const obj = JSON.parse(t); if (obj && obj.message) return obj.message; } catch(e) {}
-        const m = t.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-        if (m) { try { return JSON.parse('"' + m[1] + '"'); } catch(e) { return m[1]; } }
-        return null;
+        // JSON 未完整：提取 "message": "..." 已有内容，支持多行（\n转义）
+        const msgStart = t.indexOf('"message"');
+        if (msgStart === -1) return null;
+        const quoteStart = t.indexOf('"', t.indexOf(':', msgStart) + 1);
+        if (quoteStart === -1) return null;
+        let result = '', i = quoteStart + 1;
+        while (i < t.length) {
+          const ch = t[i];
+          if (ch === '\\') {
+            const next = t[i+1];
+            if (next === 'n') { result += '\n'; i += 2; }
+            else if (next === '"') { result += '"'; i += 2; }
+            else if (next === '\\') { result += '\\'; i += 2; }
+            else { result += next; i += 2; }
+          } else if (ch === '"') {
+            break; // 字段结束
+          } else {
+            result += ch; i++;
+          }
+        }
+        return result || null;
       }
 
       while (true) {
